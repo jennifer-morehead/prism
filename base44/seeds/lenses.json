@@ -1,0 +1,47 @@
+[
+  {
+    "id": "lens_everyday",
+    "key": "everyday_user",
+    "name": "Everyday User",
+    "description": "Frame the topic through practical day-to-day impact and accessibility.",
+    "displayOrder": 1,
+    "accentColor": "#f4b83f",
+    "isActive": true
+  },
+  {
+    "id": "lens_policy",
+    "key": "policy_reviewer",
+    "name": "Policy Reviewer",
+    "description": "Assess governance, compliance, and societal safeguards.",
+    "displayOrder": 2,
+    "accentColor": "#8ba3c7",
+    "isActive": true
+  },
+  {
+    "id": "lens_builder",
+    "key": "technical_builder",
+    "name": "Technical Builder",
+    "description": "Break down implementation constraints, architecture, and trade-offs.",
+    "displayOrder": 3,
+    "accentColor": "#7fb38d",
+    "isActive": true
+  },
+  {
+    "id": "lens_economic",
+    "key": "market_economist",
+    "name": "Market Economist",
+    "description": "Evaluate incentives, costs, and market structure implications.",
+    "displayOrder": 4,
+    "accentColor": "#c79b7a",
+    "isActive": true
+  },
+  {
+    "id": "lens_risk",
+    "key": "risk_analyst",
+    "name": "Risk Analyst",
+    "description": "Identify downside scenarios, uncertainty, and mitigation options.",
+    "displayOrder": 5,
+    "accentColor": "#c57f7f",
+    "isActive": true
+  }
+]

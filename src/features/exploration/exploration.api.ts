@@ -1,4 +1,3 @@
-import { apiClient } from "../../lib/apiClient";
 import {
   GenerateLensViewData,
   GenerateLensViewPayload,
@@ -9,37 +8,34 @@ import {
   RegenerateLensViewData,
   RegenerateLensViewPayload,
 } from "../../types/contracts";
+import { callAction } from "../../lib/actionBridge";
 
 export async function generateLensView(payload: GenerateLensViewPayload) {
-  const response = await apiClient.invoke<
-    GenerateLensViewPayload,
-    GenerateLensViewData
-  >("generateLensView", payload);
-  return response.data;
+  return callAction<GenerateLensViewData>(
+    "generateLensView",
+    payload as unknown as Record<string, unknown>,
+  );
 }
 
 export async function regenerateLensView(payload: RegenerateLensViewPayload) {
-  const response = await apiClient.invoke<
-    RegenerateLensViewPayload,
-    RegenerateLensViewData
-  >("regenerateLensView", payload);
-  return response.data;
+  return callAction<RegenerateLensViewData>(
+    "regenerateLensView",
+    payload as unknown as Record<string, unknown>,
+  );
 }
 
 export async function getLensExplorationView(
   payload: GetLensExplorationViewPayload,
 ) {
-  const response = await apiClient.invoke<
-    GetLensExplorationViewPayload,
-    GetLensExplorationViewData
-  >("getLensExplorationView", payload);
-  return response.data;
+  return callAction<GetLensExplorationViewData>(
+    "getLensExplorationView",
+    payload as unknown as Record<string, unknown>,
+  );
 }
 
 export async function getGenerationStatus(payload: GetGenerationStatusPayload) {
-  const response = await apiClient.invoke<
-    GetGenerationStatusPayload,
-    GetGenerationStatusData
-  >("getGenerationStatus", payload);
-  return response.data;
+  return callAction<GetGenerationStatusData>(
+    "getGenerationStatus",
+    payload as unknown as Record<string, unknown>,
+  );
 }

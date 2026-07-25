@@ -1,23 +1,21 @@
-import { apiClient } from "../../lib/apiClient";
 import {
   ListLensesData,
   ListLensesPayload,
   SelectLensData,
   SelectLensPayload,
 } from "../../types/contracts";
+import { callAction } from "../../lib/actionBridge";
 
 export async function listLenses(payload: ListLensesPayload = {}) {
-  const response = await apiClient.invoke<ListLensesPayload, ListLensesData>(
+  return callAction<ListLensesData>(
     "listLenses",
-    payload,
+    payload as unknown as Record<string, unknown>,
   );
-  return response.data;
 }
 
 export async function selectLens(payload: SelectLensPayload) {
-  const response = await apiClient.invoke<SelectLensPayload, SelectLensData>(
+  return callAction<SelectLensData>(
     "selectLens",
-    payload,
+    payload as unknown as Record<string, unknown>,
   );
-  return response.data;
 }

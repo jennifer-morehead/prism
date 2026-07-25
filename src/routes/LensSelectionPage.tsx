@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { LensCardGrid } from "../components/LensCardGrid";
-import { generateLensView } from "../features/exploration/exploration.api";
 import { listLenses, selectLens } from "../features/lens/lens.api";
 import { LensSummary } from "../types/contracts";
 
@@ -50,11 +49,6 @@ export function LensSelectionPage() {
     setError(null);
     try {
       await selectLens({ topicSessionId, lensId });
-      await generateLensView({
-        topicSessionId,
-        lensId,
-        retrievalEnabled: true,
-      });
       navigate(`/session/${topicSessionId}/lens/${lensId}`);
     } catch (selectionError) {
       const message =

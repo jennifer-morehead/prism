@@ -1,8 +1,6 @@
-import {
-  ApiRequestEnvelope,
-  ApiResponseEnvelope,
-  ApiSuccessEnvelope,
-} from "../types/contracts";
+import { ApiRequestEnvelope, ApiSuccessEnvelope } from "../types/contracts";
+import { ActionTransport, FetchActionTransport } from "./actionTransport";
+import { Base44ActionTransport } from "./base44ActionTransport";
 
 export interface ApiClientOptions {
   endpoint: string;
@@ -29,12 +27,11 @@ export class ApiClientError extends Error {
 }
 
 export class ApiClient {
-  private readonly endpoint: string;
-  private readonly defaultHeaders: Record<string, string>;
+  private readonly transport: ActionTransport;
 
   constructor(options: ApiClientOptions) {
-    this.endpoint = options.endpoint;
-    this.defaultHeaders = options.defaultHeaders ?? {};
+    const transport = createTransport(options.endpoint, options.defaultHeaders);
+    this.transport = transport;
   }
 
   async invoke<TPayload, TData>(
@@ -49,35 +46,58 @@ export class ApiClient {
       clientTs: new Date().toISOString(),
     };
 
-    const response = await fetch(this.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...this.defaultHeaders,
-      },
-      body: JSON.stringify(body),
-    });
+    try {
+      return await this.transport.invoke<TPayload, TData>(body);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new ApiClientError("INTERNAL_ERROR", error.message, true);
+      }
 
-    if (!response.ok) {
       throw new ApiClientError(
         "INTERNAL_ERROR",
-        `HTTP ${response.status}`,
+        "Unknown transport error",
         true,
       );
     }
-
-    const envelope = (await response.json()) as ApiResponseEnvelope<TData>;
-    if (!envelope.ok) {
-      throw new ApiClientError(
-        envelope.error.code,
-        envelope.error.message,
-        envelope.error.retriable,
-        envelope.error.details,
-      );
-    }
-
-    return envelope;
   }
 }
 
-export const apiClient = new ApiClient({ endpoint: "/api/actions" });
+const defaultEndpoint = "/api/actions";
+const configuredEndpoint = import.meta.env.VITE_API_ACTIONS_ENDPOINT;
+const runtimeProvider = import.meta.env.VITE_RUNTIME_PROVIDER;
+const defaultHeaders = import.meta.env.VITE_API_ACTIONS_HEADERS_JSON;
+
+function parseHeaders(
+  rawHeaders: string | undefined,
+): Record<string, string> | undefined {
+  if (!rawHeaders) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(rawHeaders) as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, value]) => typeof value === "string"),
+    ) as Record<string, string>;
+  } catch {
+    return undefined;
+  }
+}
+
+function createTransport(
+  endpointFromOptions: string,
+  headersFromOptions?: Record<string, string>,
+) {
+  const endpoint = endpointFromOptions || configuredEndpoint || defaultEndpoint;
+  const headers = headersFromOptions ?? parseHeaders(defaultHeaders);
+
+  if (runtimeProvider === "base44") {
+    return new Base44ActionTransport({ endpoint, defaultHeaders: headers });
+  }
+
+  return new FetchActionTransport({ endpoint, defaultHeaders: headers });
+}
+
+export const apiClient = new ApiClient({
+  endpoint: configuredEndpoint || defaultEndpoint,
+});
