@@ -1,0 +1,53 @@
+{
+  "name": "Lens",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Stable machine key for the lens",
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name",
+    },
+    "description": {
+      "type": "string",
+      "description": "Short explanation of the perspective",
+    },
+    "promptTemplate": {
+      "type": "string",
+      "description": "Prompt template used by generation",
+    },
+    "displayOrder": {
+      "type": "integer",
+      "description": "Sort order for lens selection",
+    },
+    "accentColor": {
+      "type": ["string", "null"],
+      "description": "Optional UI accent color",
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this lens appears in selection",
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Creation timestamp",
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp",
+    },
+  },
+  "required": [
+    "key",
+    "name",
+    "description",
+    "promptTemplate",
+    "displayOrder",
+    "isActive",
+  ],
+}

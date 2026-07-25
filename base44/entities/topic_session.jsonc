@@ -1,0 +1,38 @@
+{
+  "name": "TopicSession",
+  "type": "object",
+  "properties": {
+    "topicText": {
+      "type": "string",
+      "description": "Original topic entered by the user",
+    },
+    "normalizedTopic": {
+      "type": "string",
+      "description": "Normalized topic used for matching and caching",
+    },
+    "status": {
+      "type": "string",
+      "enum": ["created", "lens_selected", "generating", "ready", "failed"],
+      "description": "Lifecycle state for this topic session",
+    },
+    "selectedLensId": {
+      "type": ["string", "null"],
+      "description": "Currently selected lens identifier",
+    },
+    "activeRefractedViewId": {
+      "type": ["string", "null"],
+      "description": "Latest successful refracted view",
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Creation timestamp",
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp",
+    },
+  },
+  "required": ["topicText", "normalizedTopic", "status"],
+}

@@ -1,0 +1,70 @@
+{
+  "name": "GenerationRun",
+  "type": "object",
+  "properties": {
+    "topicSessionId": {
+      "type": "string",
+      "description": "TopicSession identifier",
+    },
+    "lensId": {
+      "type": "string",
+      "description": "Lens identifier",
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["generate", "regenerate"],
+      "description": "Run mode",
+    },
+    "retrievalEnabled": {
+      "type": "boolean",
+      "description": "Whether retrieval is enabled",
+    },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "partial", "succeeded", "failed"],
+      "description": "Execution status",
+    },
+    "startedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Execution start timestamp",
+    },
+    "finishedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Execution end timestamp",
+    },
+    "errorCode": {
+      "type": ["string", "null"],
+      "description": "Error code for failed runs",
+    },
+    "errorSummary": {
+      "type": ["string", "null"],
+      "description": "Error details for failed runs",
+    },
+    "tokenUsageInput": {
+      "type": ["integer", "null"],
+      "description": "Optional input token usage",
+    },
+    "tokenUsageOutput": {
+      "type": ["integer", "null"],
+      "description": "Optional output token usage",
+    },
+    "modelName": {
+      "type": ["string", "null"],
+      "description": "Optional model identifier",
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Creation timestamp",
+    },
+  },
+  "required": [
+    "topicSessionId",
+    "lensId",
+    "mode",
+    "retrievalEnabled",
+    "status",
+  ],
+}
