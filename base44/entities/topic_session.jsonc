@@ -34,7 +34,6 @@
           "name": { "type": "string" },
           "description": { "type": "string" },
           "displayOrder": { "type": "integer" },
-          "accentColor": { "type": ["string", "null"] },
           "isActive": { "type": "boolean" },
         },
         "required": [

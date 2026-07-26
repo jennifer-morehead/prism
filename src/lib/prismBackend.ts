@@ -26,8 +26,10 @@ import {
 
 type GenerationStatus = GenerationRunSummary["status"];
 
+type StoredLensSnapshot = Omit<LensSummary, "accentColor">;
+
 interface TopicSessionRecord extends TopicSessionSummary {
-  generatedLenses?: LensSummary[];
+  generatedLenses?: StoredLensSnapshot[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -218,6 +220,16 @@ function toDynamicLensSetFromCandidates(
         index + 1,
       ),
     );
+}
+
+function toStoredLensSnapshot(lenses: LensSummary[]): StoredLensSnapshot[] {
+  return lenses.map(({ accentColor: _accentColor, ...lens }) => lens);
+}
+
+function fromStoredLensSnapshot(
+  lenses: StoredLensSnapshot[],
+): LensSummary[] {
+  return lenses.map((lens) => ({ ...lens, accentColor: null }));
 }
 
 async function tryGenerateTopicLensesWithAi(
@@ -788,13 +800,13 @@ async function findLens(lensId: string): Promise<LensRecord> {
 async function getTopicLenses(topicSessionId: string): Promise<LensSummary[]> {
   const session = await findTopicSession(topicSessionId);
   if (session.generatedLenses && session.generatedLenses.length > 0) {
-    return session.generatedLenses;
+    return fromStoredLensSnapshot(session.generatedLenses);
   }
 
   // Backfill sessions created before generated lenses were stored as a snapshot.
   const generatedLenses = await generateTopicLenses(session.topicText);
   await getEntity("TopicSession").update(session.id, {
-    generatedLenses,
+    generatedLenses: toStoredLensSnapshot(generatedLenses),
     updatedAt: nowIso(),
   });
   return generatedLenses;
@@ -1132,7 +1144,7 @@ export async function createTopicSession(
     status: "created",
     selectedLensId: null,
     activeRefractedViewId: null,
-    generatedLenses,
+    generatedLenses: toStoredLensSnapshot(generatedLenses),
     createdAt: nowIso(),
     updatedAt: nowIso(),
   })) as unknown as TopicSessionRecord;
