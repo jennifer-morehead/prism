@@ -23,6 +23,30 @@
       "type": "string",
       "description": "Latest successful refracted view",
     },
+    "generatedLenses": {
+      "type": "array",
+      "description": "Immutable AI-generated lens snapshot for this topic session",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "key": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "displayOrder": { "type": "integer" },
+          "accentColor": { "type": ["string", "null"] },
+          "isActive": { "type": "boolean" },
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "description",
+          "displayOrder",
+          "isActive",
+        ],
+      },
+    },
     "createdAt": {
       "type": "string",
       "format": "date-time",

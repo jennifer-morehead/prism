@@ -38,6 +38,7 @@ interface TopicSession {
   status: TopicSessionStatus;
   selectedLensId: string | null;
   activeRefractedViewId: string | null;
+  generatedLenses: Lens[];
 }
 
 interface RefractedView {
@@ -96,7 +97,6 @@ interface ActionRequestEnvelope {
 // Shared Prism action core used by the local dev bridge, tests, and the future Base44 transport.
 
 interface StoreState {
-  topicLenses: Map<string, Lens[]>;
   topicSessions: Map<string, TopicSession>;
   refractedViews: Map<string, RefractedView>;
   concepts: Map<string, Concept[]>;
@@ -105,7 +105,6 @@ interface StoreState {
 }
 
 const store: StoreState = {
-  topicLenses: new Map<string, Lens[]>(),
   topicSessions: new Map<string, TopicSession>(),
   refractedViews: new Map<string, RefractedView>(),
   concepts: new Map<string, Concept[]>(),
@@ -117,7 +116,6 @@ let idCounter = 1;
 
 export function resetPrismActionStore() {
   store.topicSessions.clear();
-  store.topicLenses.clear();
   store.refractedViews.clear();
   store.concepts.clear();
   store.connections.clear();
@@ -496,13 +494,12 @@ function generateTopicLenses(topicText: string): Lens[] {
 
 function getTopicLenses(topicSessionId: string): Lens[] {
   const topicSession = ensureTopicSession(topicSessionId);
-  const existing = store.topicLenses.get(topicSessionId);
-  if (existing && existing.length > 0) {
-    return existing;
+  if (topicSession.generatedLenses.length > 0) {
+    return topicSession.generatedLenses;
   }
 
   const generated = generateTopicLenses(topicSession.topicText);
-  store.topicLenses.set(topicSessionId, generated);
+  topicSession.generatedLenses = generated;
   return generated;
 }
 
@@ -838,9 +835,7 @@ function advanceRun(run: GenerationRun): GenerationRun {
 
   const topic = store.topicSessions.get(run.topicSessionId);
   const view = store.refractedViews.get(run.refractedViewId);
-  const lens = store.topicLenses
-    .get(run.topicSessionId)
-    ?.find((item) => item.id === run.lensId);
+  const lens = topic?.generatedLenses.find((item) => item.id === run.lensId);
 
   if (!topic || !view || !lens) {
     run.status = "failed";
@@ -889,6 +884,7 @@ export function executeAction(
       );
     }
 
+    const topicLenses = generateTopicLenses(payload.topicText);
     const topicSession: TopicSession = {
       id: nextId("topic"),
       topicText: payload.topicText,
@@ -896,12 +892,10 @@ export function executeAction(
       status: "created",
       selectedLensId: null,
       activeRefractedViewId: null,
+      generatedLenses: topicLenses,
     };
 
     store.topicSessions.set(topicSession.id, topicSession);
-
-    const topicLenses = generateTopicLenses(topicSession.topicText);
-    store.topicLenses.set(topicSession.id, topicLenses);
 
     const recommendedLensIds = topicLenses
       .filter((lens) => lens.isActive)

@@ -27,6 +27,7 @@ import {
 type GenerationStatus = GenerationRunSummary["status"];
 
 interface TopicSessionRecord extends TopicSessionSummary {
+  generatedLenses?: LensSummary[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -786,7 +787,17 @@ async function findLens(lensId: string): Promise<LensRecord> {
 
 async function getTopicLenses(topicSessionId: string): Promise<LensSummary[]> {
   const session = await findTopicSession(topicSessionId);
-  return generateTopicLenses(session.topicText);
+  if (session.generatedLenses && session.generatedLenses.length > 0) {
+    return session.generatedLenses;
+  }
+
+  // Backfill sessions created before generated lenses were stored as a snapshot.
+  const generatedLenses = await generateTopicLenses(session.topicText);
+  await getEntity("TopicSession").update(session.id, {
+    generatedLenses,
+    updatedAt: nowIso(),
+  });
+  return generatedLenses;
 }
 
 async function findLensForTopicSession(
@@ -1114,17 +1125,19 @@ export async function createTopicSession(
     return functionResult;
   }
 
+  const generatedLenses = await generateTopicLenses(payload.topicText);
   const created = (await getEntity("TopicSession").create({
     topicText: payload.topicText,
     normalizedTopic: normalizeTopic(payload.topicText),
     status: "created",
     selectedLensId: null,
     activeRefractedViewId: null,
+    generatedLenses,
     createdAt: nowIso(),
     updatedAt: nowIso(),
   })) as unknown as TopicSessionRecord;
 
-  const recommendedLensIds = (await generateTopicLenses(payload.topicText))
+  const recommendedLensIds = generatedLenses
     .sort((a, b) => a.displayOrder - b.displayOrder)
     .slice(0, 3)
     .map((item) => item.id);

@@ -48,6 +48,17 @@ describe("Prism action runtime", () => {
 
     expect(result.topicSession.status).toBe("created");
     expect(result.recommendedLensIds.length).toBeGreaterThan(0);
+
+    const listed = data<{ lenses: Array<{ id: string }> }>(
+      executeAction(
+        "listLenses",
+        { topicSessionId: result.topicSession.id },
+        "req-1b",
+      ),
+    );
+    expect(listed.lenses.slice(0, 3).map((lens) => lens.id)).toEqual(
+      result.recommendedLensIds,
+    );
   });
 
   test("advances generation lifecycle to a ready exploration view", () => {
