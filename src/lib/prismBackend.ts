@@ -65,6 +65,7 @@ interface ConceptConnectionRecord extends ConceptConnectionSummary {
 interface Base44EntityClient {
   list: () => Promise<Record<string, unknown>[]>;
   create: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  delete: (id: string) => Promise<unknown>;
   update: (
     id: string,
     input: Record<string, unknown>,
@@ -266,6 +267,92 @@ async function tryGenerateTopicLensesWithAi(
   }
 
   return null;
+}
+
+interface GeneratedExploration {
+  title: string;
+  summary: string;
+  concepts: Array<{
+    title: string;
+    body: string;
+    confidenceScore: number;
+  }>;
+  connections: Array<{
+    sourceOrdinal: number;
+    relationVerb: string;
+    targetOrdinal: number;
+    rationale: string;
+    weight: number;
+  }>;
+}
+
+function normalizeGeneratedExploration(value: unknown): GeneratedExploration | null {
+  const payload =
+    typeof value === "object" && value !== null && "data" in value
+      ? (value as { data: unknown }).data
+      : value;
+  if (typeof payload !== "object" || payload === null) return null;
+
+  const result = payload as Partial<GeneratedExploration>;
+  if (
+    typeof result.title !== "string" ||
+    !result.title.trim() ||
+    typeof result.summary !== "string" ||
+    !result.summary.trim() ||
+    !Array.isArray(result.concepts) ||
+    result.concepts.length < 4 ||
+    result.concepts.length > 5 ||
+    !Array.isArray(result.connections)
+  ) {
+    return null;
+  }
+
+  const concepts = result.concepts.filter(
+    (concept): concept is GeneratedExploration["concepts"][number] =>
+      typeof concept === "object" &&
+      concept !== null &&
+      typeof concept.title === "string" &&
+      concept.title.trim().length > 0 &&
+      typeof concept.body === "string" &&
+      concept.body.trim().length > 0 &&
+      typeof concept.confidenceScore === "number" &&
+      concept.confidenceScore >= 0 &&
+      concept.confidenceScore <= 1,
+  );
+  const connections = result.connections.filter(
+    (connection): connection is GeneratedExploration["connections"][number] =>
+      typeof connection === "object" &&
+      connection !== null &&
+      Number.isInteger(connection.sourceOrdinal) &&
+      Number.isInteger(connection.targetOrdinal) &&
+      typeof connection.relationVerb === "string" &&
+      connection.relationVerb.trim().length > 0 &&
+      typeof connection.rationale === "string" &&
+      connection.rationale.trim().length > 0 &&
+      typeof connection.weight === "number" &&
+      connection.weight >= 0 &&
+      connection.weight <= 1,
+  );
+
+  if (concepts.length !== result.concepts.length || connections.length < 3) {
+    return null;
+  }
+  return { title: result.title, summary: result.summary, concepts, connections };
+}
+
+async function generateLensExplorationWithAi(
+  topicText: string,
+  lens: LensSummary,
+): Promise<GeneratedExploration> {
+  const result = await base44Runtime.functions.invoke("generateLensExploration", {
+    topicText,
+    lens: { name: lens.name, description: lens.description },
+  });
+  const exploration = normalizeGeneratedExploration(result);
+  if (!exploration) {
+    throw new Error("Lens exploration function returned an invalid response");
+  }
+  return exploration;
 }
 
 function titleCaseTopic(topicText: string): string {
@@ -881,131 +968,6 @@ function runProgressHint(
   return "failed";
 }
 
-interface TopicProfile {
-  focus: string;
-  tradeoff: string;
-  action: string;
-  rationale: string;
-}
-
-function topicProfile(topicText: string): TopicProfile {
-  const normalizedTopic = normalizeTopic(topicText);
-
-  if (normalizedTopic.includes("dog") || normalizedTopic.includes("puppy")) {
-    return {
-      focus:
-        "consistency of routines, positive reinforcement timing, and handler confidence",
-      tradeoff:
-        "fast behavior correction against stress-free learning for the animal",
-      action:
-        "Pick one training behavior, track completion daily, and reinforce at the same time windows.",
-      rationale:
-        "Consistent reinforcement quality controls whether behavior improvements hold in real settings.",
-    };
-  }
-  if (normalizedTopic.includes("cat") || normalizedTopic.includes("feline")) {
-    return {
-      focus:
-        "feeding schedule adherence, ingredient quality, and digestive tolerance",
-      tradeoff: "diet optimization against cost and owner compliance over time",
-      action:
-        "Run a two-week feeding log, compare tolerance signals, and adjust one ingredient variable at a time.",
-      rationale:
-        "Nutrition outcomes depend on stable intake patterns and careful changes to avoid confounding signals.",
-    };
-  }
-  if (normalizedTopic.includes("pet")) {
-    return {
-      focus: "care quality consistency, owner trust, and behavioral outcomes",
-      tradeoff: "quality of care against daily effort and budget constraints",
-      action:
-        "Define baseline care metrics, review weekly, and iterate only on the weakest metric.",
-      rationale:
-        "Stable care loops make it easier to attribute outcome changes to specific interventions.",
-    };
-  }
-  if (
-    normalizedTopic.includes("health") ||
-    normalizedTopic.includes("care") ||
-    normalizedTopic.includes("clinic")
-  ) {
-    return {
-      focus: "safety, workflow reliability, and access outcomes",
-      tradeoff:
-        "clinical quality against throughput and implementation complexity",
-      action:
-        "Pilot in one clinical workflow and publish a weekly safety and latency dashboard.",
-      rationale:
-        "Workflow and safety constraints determine whether improvements are sustainable at scale.",
-    };
-  }
-  if (
-    normalizedTopic.includes("school") ||
-    normalizedTopic.includes("education") ||
-    normalizedTopic.includes("learning")
-  ) {
-    return {
-      focus: "learning impact, teacher workload, and equitable access",
-      tradeoff: "personalization depth against teacher operating burden",
-      action:
-        "Start with one class segment and compare outcomes across two instruction cycles.",
-      rationale:
-        "Teacher capacity and access constraints shape which interventions are usable in practice.",
-    };
-  }
-  if (
-    normalizedTopic.includes("finance") ||
-    normalizedTopic.includes("bank") ||
-    normalizedTopic.includes("money")
-  ) {
-    return {
-      focus: "risk controls, user confidence, and operational cost",
-      tradeoff: "fraud prevention strictness against user friction",
-      action:
-        "Deploy progressive controls by risk tier and monitor false-positive drift weekly.",
-      rationale:
-        "Trust and risk outcomes move together when controls match transaction context.",
-    };
-  }
-
-  return {
-    focus: "adoption friction, trust, and measurable value",
-    tradeoff: "speed of rollout against depth of quality assurance",
-    action:
-      "Run a constrained pilot, score outcomes weekly, and expand only after measurable gains.",
-    rationale:
-      "Early execution quality determines whether adoption compounds or stalls.",
-  };
-}
-
-function lensActionBias(lensName: string, lensKey: string): string {
-  const key = lensKey.toLowerCase();
-  const name = lensName.toLowerCase();
-
-  if (key.includes("policy") || name.includes("policy")) {
-    return "governance checks and compliance-first rollout";
-  }
-  if (
-    key.includes("builder") ||
-    key.includes("technical") ||
-    name.includes("builder")
-  ) {
-    return "architecture constraints and iterative implementation";
-  }
-  if (
-    key.includes("econom") ||
-    key.includes("market") ||
-    name.includes("econom")
-  ) {
-    return "incentives, pricing pressure, and viability";
-  }
-  if (key.includes("risk") || name.includes("risk")) {
-    return "failure modes, monitoring, and fallback plans";
-  }
-
-  return "day-to-day usability and practical outcomes";
-}
-
 async function advanceGeneration(
   run: GenerationRunRecord,
 ): Promise<GenerationRunRecord> {
@@ -1017,113 +979,93 @@ async function advanceGeneration(
 
   const topic = await findTopicSession(view.topicSessionId);
   const lens = await findLensForTopicSession(view.topicSessionId, view.lensId);
-  const profile = topicProfile(topic.topicText);
-  const bias = lensActionBias(lens.name, lens.key);
-
   const conceptEntity = getEntity("Concept");
   const connectionEntity = getEntity("ConceptConnection");
 
-  const concepts = await listConceptsForView(view.id);
-  const connections = await listConnectionsForView(view.id);
-
-  if (!view.summary) {
-    await getEntity("RefractedView").update(view.id, {
-      title: `${lens.name} Refracted View`,
-      summary: `${lens.name} view: ${topic.topicText} is shaped by ${profile.focus}, with emphasis on ${bias}.`,
-      status: "generating",
-      updatedAt: nowIso(),
-    });
-
-    return (await getEntity("GenerationRun").update(run.id, {
+  try {
+    await getEntity("GenerationRun").update(run.id, {
       status: "running",
       updatedAt: nowIso(),
-    })) as unknown as GenerationRunRecord;
-  }
+    });
+    const generated = await generateLensExplorationWithAi(topic.topicText, lens);
 
-  if (concepts.length === 0) {
-    await conceptEntity.create({
-      refractedViewId: view.id,
-      ordinal: 1,
-      title: "Primary Drivers",
-      body: `For ${topic.topicText}, the ${lens.name.toLowerCase()} lens highlights ${profile.focus}.`,
-      confidenceScore: 0.78,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    });
-    await conceptEntity.create({
-      refractedViewId: view.id,
-      ordinal: 2,
-      title: "Trade-offs",
-      body: `The main tension is ${profile.tradeoff}, while preserving ${bias}.`,
-      confidenceScore: 0.75,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    });
-    await conceptEntity.create({
-      refractedViewId: view.id,
-      ordinal: 3,
-      title: "Near-Term Actions",
-      body: profile.action,
-      confidenceScore: 0.73,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    });
+    // Regeneration reuses the view, so remove its old graph before saving the new one.
+    const oldConnections = await listConnectionsForView(view.id);
+    const oldConcepts = await listConceptsForView(view.id);
+    await Promise.all(oldConnections.map((connection) => connectionEntity.delete(connection.id)));
+    await Promise.all(oldConcepts.map((concept) => conceptEntity.delete(concept.id)));
 
-    return (await getEntity("GenerationRun").update(run.id, {
-      status: "partial",
-      updatedAt: nowIso(),
-    })) as unknown as GenerationRunRecord;
-  }
+    const createdConcepts: ConceptSummary[] = [];
+    for (const [index, concept] of generated.concepts.entries()) {
+      const created = (await conceptEntity.create({
+        refractedViewId: view.id,
+        ordinal: index + 1,
+        title: concept.title,
+        body: concept.body,
+        confidenceScore: concept.confidenceScore,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      })) as unknown as ConceptSummary;
+      createdConcepts.push(created);
+    }
 
-  if (connections.length === 0 && concepts.length >= 3) {
-    await connectionEntity.create({
-      refractedViewId: view.id,
-      sourceConceptId: concepts[0].id,
-      relationVerb: "shapes",
-      targetConceptId: concepts[1].id,
-      rationale: `${profile.rationale} This sets the boundary for ${bias}.`,
-      weight: 0.76,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    });
-    await connectionEntity.create({
-      refractedViewId: view.id,
-      sourceConceptId: concepts[1].id,
-      relationVerb: "prioritizes",
-      targetConceptId: concepts[2].id,
-      rationale:
-        "The chosen trade-off profile determines the first practical action to execute.",
-      weight: 0.72,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    });
-
-    await getEntity("RefractedView").update(view.id, {
-      status: "ready",
-      retrievalSummary:
-        "Generated through Base44 SDK entity workflow with topic-aware Prism logic.",
-      generatedAt: nowIso(),
-      updatedAt: nowIso(),
-    });
-
-    const topicSessions = await listAllTopicSessions();
-    const topic = topicSessions.find((item) => item.id === view.topicSessionId);
-    if (topic) {
-      await getEntity("TopicSession").update(topic.id, {
-        status: "ready",
-        activeRefractedViewId: view.id,
+    for (const connection of generated.connections) {
+      const source = createdConcepts[connection.sourceOrdinal - 1];
+      const target = createdConcepts[connection.targetOrdinal - 1];
+      if (!source || !target || source.id === target.id) continue;
+      await connectionEntity.create({
+        refractedViewId: view.id,
+        sourceConceptId: source.id,
+        relationVerb: connection.relationVerb,
+        targetConceptId: target.id,
+        rationale: connection.rationale,
+        weight: connection.weight,
+        createdAt: nowIso(),
         updatedAt: nowIso(),
       });
     }
 
+    await getEntity("RefractedView").update(view.id, {
+      title: generated.title,
+      summary: generated.summary,
+      status: "ready",
+      retrievalSummary: "AI-generated exploration through the selected lens.",
+      errorMessage: null,
+      generatedAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+    await getEntity("TopicSession").update(topic.id, {
+      status: "ready",
+      activeRefractedViewId: view.id,
+      updatedAt: nowIso(),
+    });
+
     return (await getEntity("GenerationRun").update(run.id, {
       status: "succeeded",
       finishedAt: nowIso(),
+      modelName: "Base44 Core InvokeLLM",
+      updatedAt: nowIso(),
+    })) as unknown as GenerationRunRecord;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Lens exploration generation failed";
+    await getEntity("RefractedView").update(view.id, {
+      status: "failed",
+      errorMessage: message,
+      updatedAt: nowIso(),
+    });
+    await getEntity("TopicSession").update(topic.id, {
+      status: "failed",
+      updatedAt: nowIso(),
+    });
+    return (await getEntity("GenerationRun").update(run.id, {
+      status: "failed",
+      finishedAt: nowIso(),
+      errorCode: "LENS_EXPLORATION_FAILED",
+      errorSummary: message,
       updatedAt: nowIso(),
     })) as unknown as GenerationRunRecord;
   }
-
-  return run;
 }
 
 export async function createTopicSession(
