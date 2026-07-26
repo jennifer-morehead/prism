@@ -1,5 +1,5 @@
 const configuredProvider = (
-  import.meta.env.VITE_RUNTIME_PROVIDER ?? "local"
+  import.meta.env.VITE_RUNTIME_PROVIDER ?? "base44"
 ).toLowerCase();
 
 export const runtimeProvider =
