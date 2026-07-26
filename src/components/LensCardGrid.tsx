@@ -8,7 +8,7 @@ interface LensCardGridProps {
 export function LensCardGrid({ lenses, onSelect }: LensCardGridProps) {
   return (
     <div className="lens-grid">
-      {lenses.map((lens) => (
+      {lenses.slice(0, 4).map((lens) => (
         <button
           key={lens.id}
           type="button"
@@ -18,7 +18,9 @@ export function LensCardGrid({ lenses, onSelect }: LensCardGridProps) {
           <span className="lens-card-content">
             <h2>{lens.name}</h2>
             <p className="lens-description">{lens.description}</p>
-            <span className="lens-cta">Use this lens</span>
+            <span className="lens-cta">
+              Refract lens <span aria-hidden="true">→</span>
+            </span>
           </span>
         </button>
       ))}

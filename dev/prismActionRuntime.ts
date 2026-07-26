@@ -21,6 +21,8 @@ type ProgressHint =
   | "done"
   | "failed";
 
+const MAX_TOPIC_LENSES = 4;
+
 interface Lens {
   id: string;
   key: string;
@@ -495,12 +497,43 @@ function generateTopicLenses(topicText: string): Lens[] {
 function getTopicLenses(topicSessionId: string): Lens[] {
   const topicSession = ensureTopicSession(topicSessionId);
   if (topicSession.generatedLenses.length > 0) {
-    return topicSession.generatedLenses;
+    const lenses = topicSession.generatedLenses.slice(0, MAX_TOPIC_LENSES);
+    topicSession.generatedLenses = lenses;
+    return lenses;
   }
 
-  const generated = generateTopicLenses(topicSession.topicText);
+  const generated = generateTopicLenses(topicSession.topicText).slice(
+    0,
+    MAX_TOPIC_LENSES,
+  );
   topicSession.generatedLenses = generated;
   return generated;
+}
+
+function findCompletedLensCache(topicText: string): Lens[] | null {
+  const normalizedTopic = normalizeTopic(topicText);
+  const candidates = Array.from(store.topicSessions.values()).filter(
+    (session) =>
+      session.normalizedTopic === normalizedTopic &&
+      session.status === "ready" &&
+      session.generatedLenses.length >= 4,
+  );
+
+  for (const session of candidates) {
+    const view = session.activeRefractedViewId
+      ? store.refractedViews.get(session.activeRefractedViewId)
+      : null;
+    const hasSucceededRun = Array.from(store.generationRuns.values()).some(
+      (run) => run.topicSessionId === session.id && run.status === "succeeded",
+    );
+    if (view?.status === "ready" && hasSucceededRun) {
+      return session.generatedLenses
+        .slice(0, MAX_TOPIC_LENSES)
+        .map((lens) => ({ ...lens }));
+    }
+  }
+
+  return null;
 }
 
 function ok<T>(requestId: string | undefined, data: T) {
@@ -873,18 +906,24 @@ export function executeAction(
   if (action === "createTopicSession") {
     if (
       typeof payload.topicText !== "string" ||
-      payload.topicText.trim().length === 0
+      payload.topicText.trim().length === 0 ||
+      payload.topicText.trim().length > 120
     ) {
       return fail(
         requestId,
         "VALIDATION_ERROR",
-        "topicText is required",
+        "topicText is required and must be 120 characters or fewer",
         false,
         { field: "topicText" },
       );
     }
 
-    const topicLenses = generateTopicLenses(payload.topicText);
+    const topicLenses = (
+      payload.forceRefresh === true
+        ? generateTopicLenses(payload.topicText)
+        : (findCompletedLensCache(payload.topicText) ??
+          generateTopicLenses(payload.topicText))
+    ).slice(0, MAX_TOPIC_LENSES);
     const topicSession: TopicSession = {
       id: nextId("topic"),
       topicText: payload.topicText,
@@ -918,9 +957,58 @@ export function executeAction(
     const includeInactive = payload.includeInactive === true;
     const lenses = getTopicLenses(payload.topicSessionId)
       .filter((lens) => includeInactive || lens.isActive)
-      .sort((a, b) => a.displayOrder - b.displayOrder);
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .slice(0, MAX_TOPIC_LENSES);
 
     return ok(requestId, { lenses });
+  }
+
+  if (action === "generateFollowOnLenses") {
+    try {
+      const topicSession = ensureTopicSession(payload.topicSessionId);
+      const sourceLens = ensureLens(payload.topicSessionId, payload.lensId);
+      const view = store.refractedViews.get(payload.refractedViewId as string);
+      if (!view || view.topicSessionId !== topicSession.id || !view.summary) {
+        throw new Error("A completed refraction is required to generate new lenses");
+      }
+
+      const startOrder =
+        Math.max(0, ...topicSession.generatedLenses.map((lens) => lens.displayOrder)) +
+        1;
+      const topicSlug = slugToken(topicSession.topicText) || "topic";
+      const lenses = [
+        toLens(
+          topicSlug,
+          `${sourceLens.name} implementation strategist`,
+          "Focuses on the concrete interventions, constraints, and decisions surfaced by this refraction.",
+          startOrder,
+        ),
+        toLens(
+          topicSlug,
+          "Affected community researcher",
+          "Examines who experiences the consequences identified here and how those experiences differ.",
+          startOrder + 1,
+        ),
+        toLens(
+          topicSlug,
+          "Systems dependency mapper",
+          "Traces the institutions, incentives, and dependencies connecting the concepts in this view.",
+          startOrder + 2,
+        ),
+        toLens(
+          topicSlug,
+          "Long-horizon scenario planner",
+          "Tests how the central trade-offs could evolve under plausible future conditions.",
+          startOrder + 3,
+        ),
+      ];
+      topicSession.generatedLenses = lenses;
+      return ok(requestId, { lenses });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Follow-on lens generation failed";
+      return fail(requestId, "NOT_FOUND", message);
+    }
   }
 
   if (action === "selectLens") {

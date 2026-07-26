@@ -1,14 +1,25 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { LensCardGrid } from "../components/LensCardGrid";
-import { NewTopicPrompt } from "../components/NewTopicPrompt";
+import { HomeLink } from "../components/HomeLink";
 import { listLenses, selectLens } from "../features/lens/lens.api";
+import { getTopicSession } from "../features/topic/topic.api";
 import { LensSummary } from "../types/contracts";
+
+function formatTopicHeader(topic: string): string {
+  return topic
+    .trim()
+    .toLowerCase()
+    .replace(/(^|[\s-])([a-z])/g, (_match, prefix: string, letter: string) =>
+      `${prefix}${letter.toUpperCase()}`,
+    );
+}
 
 export function LensSelectionPage() {
   const navigate = useNavigate();
   const { topicSessionId } = useParams();
   const [lenses, setLenses] = useState<LensSummary[]>([]);
+  const [topicText, setTopicText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -17,9 +28,13 @@ export function LensSelectionPage() {
 
     const load = async () => {
       try {
-        const data = await listLenses({ topicSessionId });
+        const [data, session] = await Promise.all([
+          listLenses({ topicSessionId }),
+          topicSessionId ? getTopicSession({ topicSessionId }) : null,
+        ]);
         if (!cancelled) {
           setLenses(data.lenses);
+          setTopicText(session?.topicSession.topicText ?? null);
         }
       } catch (loadError) {
         const message =
@@ -62,11 +77,19 @@ export function LensSelectionPage() {
 
   return (
     <main className="page page-lenses">
+      <header className="page-header">
+        <Link className="back-link new-topic-link" to="/">
+          <span aria-hidden="true">←</span>
+          New Topic
+        </Link>
+        <HomeLink />
+      </header>
       <section className="hero-shell">
-        <p className="eyebrow">Perspectives</p>
-        <h1>Select a lens</h1>
+        <p className="breadcrumb">Topics / Lens</p>
+        <h1>{topicText ? formatTopicHeader(topicText) : "Your topic"}</h1>
         <p className="lede">
-          Each lens reveals a distinct way to understand this topic.
+          Choose a perspective lens to refract this topic through. Each lens
+          surfaces different ideas.
         </p>
       </section>
       {isLoading ? <p className="status-copy">Loading lenses...</p> : null}
@@ -77,7 +100,6 @@ export function LensSelectionPage() {
         />
       ) : null}
       {error ? <p className="inline-error">{error}</p> : null}
-      <NewTopicPrompt />
     </main>
   );
 }

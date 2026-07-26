@@ -25,7 +25,9 @@ export function ConnectionList({ concepts, connections }: ConnectionListProps) {
               {titleById.get(connection.targetConceptId) ??
                 connection.targetConceptId}
             </strong>
-            {connection.rationale ? ` - ${connection.rationale}` : ""}
+            {connection.rationale ? (
+              <span className="connection-rationale">{connection.rationale}</span>
+            ) : null}
           </li>
         ))}
       </ul>

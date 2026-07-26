@@ -1,6 +1,8 @@
 import {
   GenerateLensViewData,
   GenerateLensViewPayload,
+  GenerateFollowOnLensesData,
+  GenerateFollowOnLensesPayload,
   GetGenerationStatusData,
   GetGenerationStatusPayload,
   GetLensExplorationViewData,
@@ -12,6 +14,7 @@ import { callAction } from "../../lib/actionBridge";
 import { isLocalRuntime } from "../../lib/runtimeProvider";
 import {
   generateLensView as generateLensViewBackend,
+  generateFollowOnLenses as generateFollowOnLensesBackend,
   getGenerationStatus as getGenerationStatusBackend,
   getLensExplorationView as getLensExplorationViewBackend,
   regenerateLensView as regenerateLensViewBackend,
@@ -35,6 +38,19 @@ export async function regenerateLensView(payload: RegenerateLensViewPayload) {
 
   return callAction<RegenerateLensViewData>(
     "regenerateLensView",
+    payload as unknown as Record<string, unknown>,
+  );
+}
+
+export async function generateFollowOnLenses(
+  payload: GenerateFollowOnLensesPayload,
+) {
+  if (!isLocalRuntime) {
+    return generateFollowOnLensesBackend(payload);
+  }
+
+  return callAction<GenerateFollowOnLensesData>(
+    "generateFollowOnLenses",
     payload as unknown as Record<string, unknown>,
   );
 }

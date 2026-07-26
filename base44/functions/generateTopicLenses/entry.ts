@@ -8,7 +8,7 @@ const lensResponseSchema = {
     lenses: {
       type: "array",
       minItems: 4,
-      maxItems: 6,
+      maxItems: 4,
       items: {
         type: "object",
         additionalProperties: false,
@@ -30,7 +30,7 @@ function asLensSet(value: unknown):
   }
 
   const lenses = (value as { lenses?: unknown }).lenses;
-  if (!Array.isArray(lenses) || lenses.length < 4 || lenses.length > 6) {
+  if (!Array.isArray(lenses) || lenses.length !== 4) {
     return null;
   }
 
@@ -65,18 +65,14 @@ Deno.serve(async (request) => {
       );
     }
 
-    if (topicText.length > 500) {
+    if (topicText.length > 120) {
       return Response.json(
-        { error: "topicText must be 500 characters or fewer" },
+        { error: "topicText must be 120 characters or fewer" },
         { status: 400 },
       );
     }
 
-    const requestedCount =
-      typeof input.count === "number" && Number.isInteger(input.count)
-        ? input.count
-        : 5;
-    const count = Math.min(6, Math.max(4, requestedCount));
+    const count = 4;
     const base44 = createClientFromRequest(request);
 
     const result = await base44.integrations.Core.InvokeLLM({

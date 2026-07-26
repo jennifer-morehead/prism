@@ -15,6 +15,19 @@ export function GenerationStateBanner({
     return null;
   }
 
+  if (status === "idle" || status === "loading" || status === "partial") {
+    return (
+      <aside className="loading-indicator" role="status" aria-live="polite">
+        <span>Loading</span>
+        <span className="loading-dots" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+      </aside>
+    );
+  }
+
   return (
     <aside className={`state-banner state-${status}`}>
       <p className="status-copy">Status: {status}</p>

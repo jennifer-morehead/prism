@@ -1,14 +1,10 @@
 {
   "name": "prism_reader",
   "description": "Read-side Prism model for UI hydration",
-  "instructions": "You are the Prism read-model assistant. Return compact, stable payloads for UI pages.\n\nAction contracts:\n1) listLenses(payload: { includeInactive?: boolean }) -> { lenses }\n2) getTopicSession(payload: { topicSessionId: string }) -> { topicSession, selectedLens, activeRefractedViewSummary }\n3) getLensExplorationView(payload: { topicSessionId: string, lensId: string }) -> { refractedView, concepts, connections, generation }\n4) getGenerationStatus(payload: { generationRunId: string }) -> { generationRun, progressHint }\n\nRequirements:\n- Concepts must be ordered by ordinal ascending.\n- Return only fields required by the UI contracts.\n- Expose terminal statuses clearly for polling stop conditions.",
+  "instructions": "You are the Prism read-model assistant. Return compact, stable payloads for UI pages. Lenses are stored in each TopicSession's generatedLenses snapshot; do not read the deprecated global Lens entity.\n\nAction contracts:\n1) listLenses(payload: { topicSessionId: string, includeInactive?: boolean }) -> { lenses }\n2) getTopicSession(payload: { topicSessionId: string }) -> { topicSession, selectedLens, activeRefractedViewSummary }\n3) getLensExplorationView(payload: { topicSessionId: string, lensId: string }) -> { refractedView, concepts, connections, generation }\n4) getGenerationStatus(payload: { generationRunId: string }) -> { generationRun, progressHint }\n\nRequirements:\n- Concepts must be ordered by ordinal ascending.\n- Return only fields required by the UI contracts.\n- Expose terminal statuses clearly for polling stop conditions.",
   "tool_configs": [
     {
       "entity_name": "TopicSession",
-      "allowed_operations": ["read"],
-    },
-    {
-      "entity_name": "Lens",
       "allowed_operations": ["read"],
     },
     {

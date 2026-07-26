@@ -99,6 +99,7 @@ export interface GenerationRunSummary {
 
 export interface CreateTopicSessionPayload {
   topicText: string;
+  forceRefresh?: boolean;
 }
 
 export interface CreateTopicSessionData {
@@ -137,6 +138,16 @@ export interface RegenerateLensViewPayload {
 export interface RegenerateLensViewData {
   generationRunId: string;
   status: "queued" | "running";
+}
+
+export interface GenerateFollowOnLensesPayload {
+  topicSessionId: string;
+  lensId: string;
+  refractedViewId: string;
+}
+
+export interface GenerateFollowOnLensesData {
+  lenses: LensSummary[];
 }
 
 export interface ListLensesPayload {

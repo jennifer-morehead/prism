@@ -1,3 +1,6 @@
+// Deprecated: Prism now stores contextual, AI-generated lenses in
+// TopicSession.generatedLenses. Retained temporarily to avoid deleting a
+// deployed Base44 entity without an explicit migration/removal decision.
 {
   "name": "Lens",
   "type": "object",

@@ -6,6 +6,8 @@ import {
   CreateTopicSessionPayload,
   GenerateLensViewData,
   GenerateLensViewPayload,
+  GenerateFollowOnLensesData,
+  GenerateFollowOnLensesPayload,
   GenerationRunSummary,
   GetGenerationStatusData,
   GetGenerationStatusPayload,
@@ -25,17 +27,12 @@ import {
 } from "../types/contracts";
 
 type GenerationStatus = GenerationRunSummary["status"];
+const MAX_TOPIC_LENSES = 4;
 
 type StoredLensSnapshot = Omit<LensSummary, "accentColor">;
 
 interface TopicSessionRecord extends TopicSessionSummary {
   generatedLenses?: StoredLensSnapshot[];
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-interface LensRecord extends LensSummary {
-  promptTemplate?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -202,7 +199,7 @@ function normalizeGeneratedLensCandidates(
       };
     })
     .filter((item) => item !== null)
-    .slice(0, 6);
+    .slice(0, MAX_TOPIC_LENSES);
 
   return mapped as GeneratedLensCandidate[];
 }
@@ -210,34 +207,39 @@ function normalizeGeneratedLensCandidates(
 function toDynamicLensSetFromCandidates(
   topicSlug: string,
   candidates: GeneratedLensCandidate[],
+  startDisplayOrder = 1,
 ): LensSummary[] {
   return candidates
-    .slice(0, 6)
+    .slice(0, MAX_TOPIC_LENSES)
     .map((candidate, index) =>
       toDynamicLens(
         topicSlug,
         candidate.name,
         candidate.description ?? "AI-generated perspective lens.",
-        index + 1,
+        startDisplayOrder + index,
       ),
     );
 }
 
 function toStoredLensSnapshot(lenses: LensSummary[]): StoredLensSnapshot[] {
-  return lenses.map(({ accentColor: _accentColor, ...lens }) => lens);
+  return lenses
+    .slice(0, MAX_TOPIC_LENSES)
+    .map(({ accentColor: _accentColor, ...lens }) => lens);
 }
 
 function fromStoredLensSnapshot(
   lenses: StoredLensSnapshot[],
 ): LensSummary[] {
-  return lenses.map((lens) => ({ ...lens, accentColor: null }));
+  return lenses
+    .slice(0, MAX_TOPIC_LENSES)
+    .map((lens) => ({ ...lens, accentColor: null }));
 }
 
 async function tryGenerateTopicLensesWithAi(
   topicText: string,
 ): Promise<LensSummary[] | null> {
   const topicSlug = slugToken(topicText) || "topic";
-  const payload = { topicText, count: 5 };
+  const payload = { topicText, count: MAX_TOPIC_LENSES };
 
   const attempts: Array<{
     name: string;
@@ -686,10 +688,10 @@ function generateTopicLensesDeterministic(topicText: string): LensSummary[] {
 async function generateTopicLenses(topicText: string): Promise<LensSummary[]> {
   const aiLenses = await tryGenerateTopicLensesWithAi(topicText);
   if (aiLenses && aiLenses.length >= 4) {
-    return aiLenses;
+    return aiLenses.slice(0, MAX_TOPIC_LENSES);
   }
 
-  return generateTopicLensesDeterministic(topicText);
+  return generateTopicLensesDeterministic(topicText).slice(0, MAX_TOPIC_LENSES);
 }
 
 function toTopicSessionSummary(
@@ -702,18 +704,6 @@ function toTopicSessionSummary(
     status: record.status,
     selectedLensId: record.selectedLensId ?? null,
     activeRefractedViewId: record.activeRefractedViewId ?? null,
-  };
-}
-
-function toLensSummary(record: LensRecord): LensSummary {
-  return {
-    id: record.id,
-    key: record.key,
-    name: record.name,
-    description: record.description,
-    displayOrder: record.displayOrder,
-    accentColor: record.accentColor ?? null,
-    isActive: record.isActive,
   };
 }
 
@@ -828,10 +818,6 @@ async function listAllTopicSessions(): Promise<TopicSessionRecord[]> {
   ).list()) as unknown as TopicSessionRecord[];
 }
 
-async function listAllLenses(): Promise<LensRecord[]> {
-  return (await getEntity("Lens").list()) as unknown as LensRecord[];
-}
-
 async function listAllRefractedViews(): Promise<RefractedViewRecord[]> {
   return (await getEntity(
     "RefractedView",
@@ -842,6 +828,41 @@ async function listAllGenerationRuns(): Promise<GenerationRunRecord[]> {
   return (await getEntity(
     "GenerationRun",
   ).list()) as unknown as GenerationRunRecord[];
+}
+
+async function findCompletedLensCache(
+  normalizedTopic: string,
+): Promise<LensSummary[] | null> {
+  const [sessions, views, runs] = await Promise.all([
+    listAllTopicSessions(),
+    listAllRefractedViews(),
+    listAllGenerationRuns(),
+  ]);
+  const candidates = sessions
+    .filter(
+      (session) =>
+        session.normalizedTopic === normalizedTopic &&
+        session.status === "ready" &&
+        session.generatedLenses &&
+        session.generatedLenses.length >= 4,
+    )
+    .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
+
+  for (const session of candidates) {
+    const hasReadyView = views.some(
+      (view) =>
+        view.id === session.activeRefractedViewId && view.status === "ready",
+    );
+    const hasSucceededRun = runs.some(
+      (run) =>
+        run.topicSessionId === session.id && run.status === "succeeded",
+    );
+    if (hasReadyView && hasSucceededRun) {
+      return fromStoredLensSnapshot(session.generatedLenses ?? []);
+    }
+  }
+
+  return null;
 }
 
 async function listConceptsForView(
@@ -875,19 +896,17 @@ async function findTopicSession(
   return session;
 }
 
-async function findLens(lensId: string): Promise<LensRecord> {
-  const lenses = await listAllLenses();
-  const lens = lenses.find((item) => item.id === lensId);
-  if (!lens) {
-    throw new Error("Lens not found");
-  }
-  return lens;
-}
-
 async function getTopicLenses(topicSessionId: string): Promise<LensSummary[]> {
   const session = await findTopicSession(topicSessionId);
   if (session.generatedLenses && session.generatedLenses.length > 0) {
-    return fromStoredLensSnapshot(session.generatedLenses);
+    const lenses = fromStoredLensSnapshot(session.generatedLenses);
+    if (session.generatedLenses.length > MAX_TOPIC_LENSES) {
+      await getEntity("TopicSession").update(session.id, {
+        generatedLenses: toStoredLensSnapshot(lenses),
+        updatedAt: nowIso(),
+      });
+    }
+    return lenses;
   }
 
   // Backfill sessions created before generated lenses were stored as a snapshot.
@@ -909,11 +928,7 @@ async function findLensForTopicSession(
     return topicLens;
   }
 
-  try {
-    return toLensSummary(await findLens(lensId));
-  } catch {
-    throw new Error("Lens not found");
-  }
+  throw new Error("Lens not found in this topic session");
 }
 
 async function findOrCreateRefractedView(
@@ -1071,6 +1086,10 @@ async function advanceGeneration(
 export async function createTopicSession(
   payload: CreateTopicSessionPayload,
 ): Promise<CreateTopicSessionData> {
+  if (payload.topicText.trim().length > 120) {
+    throw new Error("topicText must be 120 characters or fewer");
+  }
+
   const functionResult = await tryInvoke<
     CreateTopicSessionPayload,
     CreateTopicSessionData
@@ -1079,10 +1098,16 @@ export async function createTopicSession(
     return functionResult;
   }
 
-  const generatedLenses = await generateTopicLenses(payload.topicText);
+  const normalizedTopic = normalizeTopic(payload.topicText);
+  const cachedLenses = payload.forceRefresh
+    ? null
+    : await findCompletedLensCache(normalizedTopic);
+  const generatedLenses = (
+    cachedLenses ?? (await generateTopicLenses(payload.topicText))
+  ).slice(0, MAX_TOPIC_LENSES);
   const created = (await getEntity("TopicSession").create({
     topicText: payload.topicText,
-    normalizedTopic: normalizeTopic(payload.topicText),
+    normalizedTopic,
     status: "created",
     selectedLensId: null,
     activeRefractedViewId: null,
@@ -1116,17 +1141,12 @@ export async function listLenses(
   if (payload.topicSessionId) {
     const lenses = (await getTopicLenses(payload.topicSessionId))
       .filter((item) => payload.includeInactive || item.isActive)
-      .sort((a, b) => a.displayOrder - b.displayOrder);
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .slice(0, MAX_TOPIC_LENSES);
     return { lenses };
   }
 
-  const all = await listAllLenses();
-  const lenses = all
-    .filter((item) => payload.includeInactive || item.isActive)
-    .sort((a, b) => a.displayOrder - b.displayOrder)
-    .map(toLensSummary);
-
-  return { lenses };
+  return { lenses: [] };
 }
 
 export async function selectLens(
@@ -1212,6 +1232,60 @@ export async function generateLensView(
     refractedViewId: view.id,
     status: "queued",
   };
+}
+
+export async function generateFollowOnLenses(
+  payload: GenerateFollowOnLensesPayload,
+): Promise<GenerateFollowOnLensesData> {
+  const topicSession = await findTopicSession(payload.topicSessionId);
+  const sourceLens = await findLensForTopicSession(
+    payload.topicSessionId,
+    payload.lensId,
+  );
+  const views = await listAllRefractedViews();
+  const view = views.find(
+    (item) =>
+      item.id === payload.refractedViewId &&
+      item.topicSessionId === payload.topicSessionId &&
+      item.lensId === payload.lensId,
+  );
+  if (!view || !view.summary) {
+    throw new Error("A completed refraction is required to generate new lenses");
+  }
+
+  const concepts = await listConceptsForView(view.id);
+  const result = await base44Runtime.functions.invoke("generateFollowOnLenses", {
+    topicText: topicSession.topicText,
+    lens: { name: sourceLens.name, description: sourceLens.description },
+    refraction: {
+      title: view.title,
+      summary: view.summary,
+      concepts: concepts.map((concept) => ({
+        title: concept.title,
+        body: concept.body,
+      })),
+    },
+    count: 4,
+  });
+  const candidates = normalizeGeneratedLensCandidates(result);
+  if (candidates.length < 4) {
+    throw new Error("Follow-on lens function returned an invalid response");
+  }
+
+  const existingLenses = await getTopicLenses(topicSession.id);
+  const nextDisplayOrder =
+    Math.max(0, ...existingLenses.map((lens) => lens.displayOrder)) + 1;
+  const followOnLenses = toDynamicLensSetFromCandidates(
+    slugToken(topicSession.topicText) || "topic",
+    candidates.slice(0, 4),
+    nextDisplayOrder,
+  );
+  await getEntity("TopicSession").update(topicSession.id, {
+    generatedLenses: toStoredLensSnapshot(followOnLenses),
+    updatedAt: nowIso(),
+  });
+
+  return { lenses: followOnLenses };
 }
 
 export async function regenerateLensView(

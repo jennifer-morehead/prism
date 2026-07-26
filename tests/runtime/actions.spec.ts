@@ -171,6 +171,93 @@ describe("Prism action runtime", () => {
     expect(exploration.generation.status).toBe("succeeded");
   });
 
+  test("reuses completed exact-topic lenses unless forceRefresh is requested", () => {
+    const source = data<{ topicSession: { id: string } }>(
+      executeAction(
+        "createTopicSession",
+        { topicText: "yoga" },
+        "cache-1",
+      ),
+    );
+    const sourceLenses = data<{ lenses: Array<{ id: string }> }>(
+      executeAction(
+        "listLenses",
+        { topicSessionId: source.topicSession.id },
+        "cache-2",
+      ),
+    );
+    const lensId = sourceLenses.lenses[0]?.id;
+    if (!lensId) throw new Error("Expected a source lens");
+
+    data(
+      executeAction(
+        "selectLens",
+        { topicSessionId: source.topicSession.id, lensId },
+        "cache-3",
+      ),
+    );
+    const run = data<{ generationRunId: string }>(
+      executeAction(
+        "generateLensView",
+        { topicSessionId: source.topicSession.id, lensId },
+        "cache-4",
+      ),
+    );
+    executeAction("getGenerationStatus", { generationRunId: run.generationRunId }, "cache-5");
+    executeAction("getGenerationStatus", { generationRunId: run.generationRunId }, "cache-6");
+    executeAction("getGenerationStatus", { generationRunId: run.generationRunId }, "cache-7");
+    const exploration = data<{ refractedView: { id: string } }>(
+      executeAction(
+        "getLensExplorationView",
+        { topicSessionId: source.topicSession.id, lensId },
+        "cache-8",
+      ),
+    );
+    data(
+      executeAction(
+        "generateFollowOnLenses",
+        {
+          topicSessionId: source.topicSession.id,
+          lensId,
+          refractedViewId: exploration.refractedView.id,
+        },
+        "cache-9",
+      ),
+    );
+
+    const reused = data<{ topicSession: { id: string } }>(
+      executeAction(
+        "createTopicSession",
+        { topicText: "  YOGA   " },
+        "cache-10",
+      ),
+    );
+    const reusedLenses = data<{ lenses: unknown[] }>(
+      executeAction(
+        "listLenses",
+        { topicSessionId: reused.topicSession.id },
+        "cache-11",
+      ),
+    );
+    expect(reusedLenses.lenses).toHaveLength(4);
+
+    const refreshed = data<{ topicSession: { id: string } }>(
+      executeAction(
+        "createTopicSession",
+        { topicText: "yoga", forceRefresh: true },
+        "cache-12",
+      ),
+    );
+    const refreshedLenses = data<{ lenses: unknown[] }>(
+      executeAction(
+        "listLenses",
+        { topicSessionId: refreshed.topicSession.id },
+        "cache-13",
+      ),
+    );
+    expect(refreshedLenses.lenses).toHaveLength(4);
+  });
+
   test("supports regeneration and returns expected error codes for bad inputs", () => {
     const missingRun = executeAction(
       "getGenerationStatus",
