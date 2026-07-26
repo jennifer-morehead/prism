@@ -3,6 +3,7 @@ import { ConceptCardList } from "../components/ConceptCardList";
 import { ConnectionList } from "../components/ConnectionList";
 import { GenerationStateBanner } from "../components/GenerationStateBanner";
 import { RefractedHero } from "../components/RefractedHero";
+import { NewTopicPrompt } from "../components/NewTopicPrompt";
 import { useExplorationState } from "../features/exploration/useExplorationState";
 
 export function ExplorationPage() {
@@ -30,6 +31,7 @@ export function ExplorationPage() {
 
   return (
     <main className="page page-exploration">
+      <NewTopicPrompt compact />
       <header className="exploration-head">
         <p className="meta-pill">Session: {topicSessionId}</p>
         <p className="meta-pill">Lens: {lensId}</p>

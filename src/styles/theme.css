@@ -89,6 +89,40 @@ form {
   margin: 18px 0 8px;
 }
 
+.new-topic-prompt {
+  margin: 18px 0 8px;
+}
+
+.new-topic-prompt .topic-form {
+  margin: 0;
+}
+
+.new-topic-prompt.is-compact {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.55fr) minmax(280px, 1.45fr);
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 28px;
+  padding: 12px 14px;
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  background: rgba(255, 253, 247, 0.68);
+}
+
+.new-topic-label {
+  margin: 0;
+  color: var(--moss);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.new-topic-prompt.is-compact .inline-error {
+  grid-column: 2;
+  margin: 0;
+}
+
 input,
 button,
 .lens-card {
@@ -215,5 +249,13 @@ button:hover {
   button,
   input {
     width: 100%;
+  }
+
+  .new-topic-prompt.is-compact {
+    grid-template-columns: 1fr;
+  }
+
+  .new-topic-prompt.is-compact .inline-error {
+    grid-column: auto;
   }
 }

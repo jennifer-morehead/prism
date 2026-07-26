@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { LensCardGrid } from "../components/LensCardGrid";
+import { NewTopicPrompt } from "../components/NewTopicPrompt";
 import { listLenses, selectLens } from "../features/lens/lens.api";
 import { LensSummary } from "../types/contracts";
 
@@ -66,6 +67,7 @@ export function LensSelectionPage() {
 
   return (
     <main className="page page-lenses">
+      <NewTopicPrompt compact />
       <section className="hero-shell">
         <p className="eyebrow">Step 2</p>
         <h1>Select A Perspective Lens</h1>
