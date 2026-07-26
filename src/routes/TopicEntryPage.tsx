@@ -29,21 +29,29 @@ export function TopicEntryPage() {
 
   return (
     <main className="page page-topic">
-      <h1>What topic would you like to explore?</h1>
-      <form onSubmit={handleSubmit}>
+      <section className="hero-shell">
+        <p className="eyebrow">Prism Lens Studio</p>
+        <h1>Reframe Any Topic Through Competing Perspectives</h1>
+        <p className="lede">
+          Enter a topic, pick a lens, and generate a structured exploration with
+          concepts and explicit causal connections.
+        </p>
+      </section>
+
+      <form onSubmit={handleSubmit} className="topic-form">
         <input
           type="text"
           value={topic}
           onChange={(event) => setTopic(event.target.value)}
-          placeholder="Type a topic"
+          placeholder="Try: dog training, cat nutrition, AI in healthcare"
           aria-label="Topic"
           required
         />
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Creating..." : "Continue"}
+          {isSubmitting ? "Opening Session..." : "Generate Perspectives"}
         </button>
       </form>
-      {error ? <p>{error}</p> : null}
+      {error ? <p className="inline-error">{error}</p> : null}
     </main>
   );
 }

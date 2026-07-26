@@ -11,11 +11,11 @@
       "description": "Lens identifier",
     },
     "title": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Generated title",
     },
     "summary": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Generated summary text",
     },
     "status": {
@@ -24,7 +24,7 @@
       "description": "Generation status",
     },
     "generationRunId": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Latest generation run identifier",
     },
     "retrievalEnabled": {
@@ -32,15 +32,15 @@
       "description": "Whether retrieval was used",
     },
     "retrievalSummary": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Optional retrieval notes",
     },
     "errorMessage": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Failure message",
     },
     "generatedAt": {
-      "type": ["string", "null"],
+      "type": "string",
       "format": "date-time",
       "description": "Completion timestamp",
     },

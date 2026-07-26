@@ -16,10 +16,12 @@ export function GenerationStateBanner({
   }
 
   return (
-    <aside>
-      <p>Status: {status}</p>
-      {progressHint ? <p>Progress: {progressHint}</p> : null}
-      {error ? <p>{error}</p> : null}
+    <aside className={`state-banner state-${status}`}>
+      <p className="status-copy">Status: {status}</p>
+      {progressHint ? (
+        <p className="status-copy">Progress: {progressHint}</p>
+      ) : null}
+      {error ? <p className="inline-error">{error}</p> : null}
       <button type="button" onClick={onRegenerate}>
         Regenerate
       </button>

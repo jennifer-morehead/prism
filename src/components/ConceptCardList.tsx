@@ -6,11 +6,11 @@ interface ConceptCardListProps {
 
 export function ConceptCardList({ concepts }: ConceptCardListProps) {
   return (
-    <section>
+    <section className="card-panel">
       <h2>Key concepts</h2>
-      <div>
+      <div className="concept-grid">
         {concepts.map((concept) => (
-          <article key={concept.id}>
+          <article className="concept-card" key={concept.id}>
             <h3>
               {concept.ordinal}. {concept.title}
             </h3>

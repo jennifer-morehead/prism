@@ -23,7 +23,7 @@
       "description": "Sort order for lens selection",
     },
     "accentColor": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Optional UI accent color",
     },
     "isActive": {

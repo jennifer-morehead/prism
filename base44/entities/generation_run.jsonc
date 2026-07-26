@@ -25,33 +25,33 @@
       "description": "Execution status",
     },
     "startedAt": {
-      "type": ["string", "null"],
+      "type": "string",
       "format": "date-time",
       "description": "Execution start timestamp",
     },
     "finishedAt": {
-      "type": ["string", "null"],
+      "type": "string",
       "format": "date-time",
       "description": "Execution end timestamp",
     },
     "errorCode": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Error code for failed runs",
     },
     "errorSummary": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Error details for failed runs",
     },
     "tokenUsageInput": {
-      "type": ["integer", "null"],
+      "type": "integer",
       "description": "Optional input token usage",
     },
     "tokenUsageOutput": {
-      "type": ["integer", "null"],
+      "type": "integer",
       "description": "Optional output token usage",
     },
     "modelName": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Optional model identifier",
     },
     "createdAt": {

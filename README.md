@@ -16,6 +16,8 @@ Copy `.env.example` to `.env` and set your Base44 app values.
 
 Default behavior:
 
+- `VITE_RUNTIME_PROVIDER=local` uses the local `/api/actions` bridge and does not write to Base44.
+- `VITE_RUNTIME_PROVIDER=base44` uses the Base44 SDK and writes to your Base44 app entities.
 - `VITE_BASE44_APP_ID` is used by the SDK client.
 - If `VITE_BASE44_APP_ID` is not set, the app falls back to the bundled demo app id and logs a warning.
 - `VITE_BASE44_SERVER_URL` is optional and defaults to `https://base44.app`.

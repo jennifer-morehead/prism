@@ -54,10 +54,26 @@ describe("Prism action runtime", () => {
     const created = data<{ topicSession: { id: string } }>(
       executeAction(
         "createTopicSession",
-        { topicText: "AI in healthcare" },
+        { topicText: "dog training" },
         "req-2",
       ),
     );
+
+    const availableLenses = data<{
+      lenses: Array<{ id: string; name: string }>;
+    }>(
+      executeAction(
+        "listLenses",
+        { topicSessionId: created.topicSession.id },
+        "req-2b",
+      ),
+    );
+    const selectedLensId = availableLenses.lenses[0]?.id;
+    const selectedLensName = availableLenses.lenses[0]?.name;
+
+    if (!selectedLensId || !selectedLensName) {
+      throw new Error("Expected at least one generated lens");
+    }
 
     const selected = data<{
       topicSession: { status: string };
@@ -65,7 +81,7 @@ describe("Prism action runtime", () => {
     }>(
       executeAction(
         "selectLens",
-        { topicSessionId: created.topicSession.id, lensId: "lens_everyday" },
+        { topicSessionId: created.topicSession.id, lensId: selectedLensId },
         "req-3",
       ),
     );
@@ -77,7 +93,7 @@ describe("Prism action runtime", () => {
         "generateLensView",
         {
           topicSessionId: created.topicSession.id,
-          lensId: "lens_everyday",
+          lensId: selectedLensId,
           retrievalEnabled: true,
         },
         "req-4",
@@ -132,13 +148,13 @@ describe("Prism action runtime", () => {
     }>(
       executeAction(
         "getLensExplorationView",
-        { topicSessionId: created.topicSession.id, lensId: "lens_everyday" },
+        { topicSessionId: created.topicSession.id, lensId: selectedLensId },
         "req-8",
       ),
     );
 
     expect(exploration.refractedView.status).toBe("ready");
-    expect(exploration.refractedView.title).toContain("Everyday User");
+    expect(exploration.refractedView.title).toContain(selectedLensName);
     expect(exploration.concepts).toHaveLength(3);
     expect(exploration.connections).toHaveLength(2);
     expect(exploration.generation.status).toBe("succeeded");
@@ -167,10 +183,22 @@ describe("Prism action runtime", () => {
       ),
     );
 
+    const availableLenses = data<{ lenses: Array<{ id: string }> }>(
+      executeAction(
+        "listLenses",
+        { topicSessionId: created.topicSession.id },
+        "req-11b",
+      ),
+    );
+    const selectedLensId = availableLenses.lenses[0]?.id;
+    if (!selectedLensId) {
+      throw new Error("Expected at least one generated lens");
+    }
+
     data(
       executeAction(
         "selectLens",
-        { topicSessionId: created.topicSession.id, lensId: "lens_policy" },
+        { topicSessionId: created.topicSession.id, lensId: selectedLensId },
         "req-12",
       ),
     );
@@ -179,7 +207,7 @@ describe("Prism action runtime", () => {
         "generateLensView",
         {
           topicSessionId: created.topicSession.id,
-          lensId: "lens_policy",
+          lensId: selectedLensId,
           retrievalEnabled: true,
         },
         "req-13",
@@ -204,7 +232,7 @@ describe("Prism action runtime", () => {
     const regenerated = data<{ generationRunId: string }>(
       executeAction(
         "regenerateLensView",
-        { topicSessionId: created.topicSession.id, lensId: "lens_policy" },
+        { topicSessionId: created.topicSession.id, lensId: selectedLensId },
         "req-17",
       ),
     );

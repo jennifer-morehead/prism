@@ -59,28 +59,56 @@ describe("Generation lifecycle", () => {
     expect(errorCode(failedGeneration)).toBe("NOT_FOUND");
 
     const selected = data<{ topicSession: { status: string } }>(
-      executeAction(
-        "selectLens",
-        {
-          topicSessionId: created.topicSession.id,
-          lensId: "lens_everyday",
-        },
-        "life-3",
-      ),
+      (() => {
+        const lenses = data<{ lenses: Array<{ id: string }> }>(
+          executeAction(
+            "listLenses",
+            { topicSessionId: created.topicSession.id },
+            "life-2b",
+          ),
+        );
+        const lensId = lenses.lenses[0]?.id;
+        if (!lensId) {
+          throw new Error("Expected at least one generated lens");
+        }
+
+        return executeAction(
+          "selectLens",
+          {
+            topicSessionId: created.topicSession.id,
+            lensId,
+          },
+          "life-3",
+        );
+      })(),
     );
 
     expect(selected.topicSession.status).toBe("lens_selected");
 
     const generated = data<{ generationRunId: string }>(
-      executeAction(
-        "generateLensView",
-        {
-          topicSessionId: created.topicSession.id,
-          lensId: "lens_everyday",
-          retrievalEnabled: true,
-        },
-        "life-4",
-      ),
+      (() => {
+        const lenses = data<{ lenses: Array<{ id: string }> }>(
+          executeAction(
+            "listLenses",
+            { topicSessionId: created.topicSession.id },
+            "life-3b",
+          ),
+        );
+        const lensId = lenses.lenses[0]?.id;
+        if (!lensId) {
+          throw new Error("Expected at least one generated lens");
+        }
+
+        return executeAction(
+          "generateLensView",
+          {
+            topicSessionId: created.topicSession.id,
+            lensId,
+            retrievalEnabled: true,
+          },
+          "life-4",
+        );
+      })(),
     );
 
     const first = data<{ generationRun: { status: string } }>(
@@ -119,9 +147,21 @@ describe("Generation lifecycle", () => {
       ),
     );
 
+    const initialLenses = data<{ lenses: Array<{ id: string }> }>(
+      executeAction(
+        "listLenses",
+        { topicSessionId: created.topicSession.id },
+        "regen-1b",
+      ),
+    );
+    const selectedLensId = initialLenses.lenses[0]?.id;
+    if (!selectedLensId) {
+      throw new Error("Expected at least one generated lens");
+    }
+
     executeAction(
       "selectLens",
-      { topicSessionId: created.topicSession.id, lensId: "lens_everyday" },
+      { topicSessionId: created.topicSession.id, lensId: selectedLensId },
       "regen-2",
     );
 
@@ -130,7 +170,7 @@ describe("Generation lifecycle", () => {
         "generateLensView",
         {
           topicSessionId: created.topicSession.id,
-          lensId: "lens_everyday",
+          lensId: selectedLensId,
           retrievalEnabled: true,
         },
         "regen-3",
@@ -161,7 +201,7 @@ describe("Generation lifecycle", () => {
     const regenRun = data<{ generationRunId: string }>(
       executeAction(
         "regenerateLensView",
-        { topicSessionId: created.topicSession.id, lensId: "lens_everyday" },
+        { topicSessionId: created.topicSession.id, lensId: selectedLensId },
         "regen-7",
       ),
     );
@@ -200,7 +240,7 @@ describe("Generation lifecycle", () => {
     }>(
       executeAction(
         "getLensExplorationView",
-        { topicSessionId: created.topicSession.id, lensId: "lens_everyday" },
+        { topicSessionId: created.topicSession.id, lensId: selectedLensId },
         "regen-11",
       ),
     );

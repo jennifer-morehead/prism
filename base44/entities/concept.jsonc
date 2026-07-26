@@ -19,7 +19,7 @@
       "description": "Concept explanation",
     },
     "confidenceScore": {
-      "type": ["number", "null"],
+      "type": "number",
       "minimum": 0,
       "maximum": 1,
       "description": "Optional confidence from generation",

@@ -16,11 +16,11 @@
       "description": "Lifecycle state for this topic session",
     },
     "selectedLensId": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Currently selected lens identifier",
     },
     "activeRefractedViewId": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Latest successful refracted view",
     },
     "createdAt": {

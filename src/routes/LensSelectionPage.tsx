@@ -16,7 +16,7 @@ export function LensSelectionPage() {
 
     const load = async () => {
       try {
-        const data = await listLenses();
+        const data = await listLenses({ topicSessionId });
         if (!cancelled) {
           setLenses(data.lenses);
         }
@@ -39,7 +39,7 @@ export function LensSelectionPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [topicSessionId]);
 
   const handleSelect = async (lensId: string) => {
     if (!topicSessionId) {
@@ -66,15 +66,18 @@ export function LensSelectionPage() {
 
   return (
     <main className="page page-lenses">
-      <h1>Select a perspective lens</h1>
-      {isLoading ? <p>Loading lenses...</p> : null}
+      <section className="hero-shell">
+        <p className="eyebrow">Step 2</p>
+        <h1>Select A Perspective Lens</h1>
+      </section>
+      {isLoading ? <p className="status-copy">Loading lenses...</p> : null}
       {!isLoading && topicSessionId ? (
         <LensCardGrid
           lenses={selectableLenses}
           onSelect={(lensId) => void handleSelect(lensId)}
         />
       ) : null}
-      {error ? <p>{error}</p> : null}
+      {error ? <p className="inline-error">{error}</p> : null}
     </main>
   );
 }

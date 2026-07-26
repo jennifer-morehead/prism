@@ -1,12 +1,18 @@
 :root {
-  color: #19160f;
-  background: radial-gradient(
-    circle at top left,
-    #f5f6df 0%,
-    #f2e8d8 45%,
-    #e6e1d2 100%
-  );
-  font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+  --ink: #1d1d1b;
+  --sand: #f7f3e9;
+  --paper: #fffdf7;
+  --warm: #db8d2d;
+  --warm-deep: #b36b15;
+  --edge: #d7c8aa;
+  --muted: #6d6455;
+  --moss: #315b4c;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 12% 12%, #f9f2dc 0%, transparent 28%),
+    radial-gradient(circle at 85% 20%, #f0e1bd 0%, transparent 32%),
+    linear-gradient(160deg, #f5efe0 0%, #ece1c9 100%);
+  font-family: "Avenir Next", "Trebuchet MS", "Helvetica Neue", sans-serif;
   line-height: 1.4;
 }
 
@@ -19,46 +25,195 @@ body {
   min-height: 100vh;
 }
 
+.runtime-badge {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 50;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  backdrop-filter: blur(4px);
+}
+
+.runtime-local {
+  color: #2d2318;
+  background: rgba(255, 243, 213, 0.9);
+  border-color: #d8ab54;
+}
+
+.runtime-base44 {
+  color: #122a22;
+  background: rgba(218, 248, 233, 0.9);
+  border-color: #5aa281;
+}
+
 .page {
-  max-width: 880px;
+  max-width: 980px;
   margin: 0 auto;
-  padding: 32px 20px 56px;
+  padding: 44px 24px 64px;
 }
 
 h1,
 h2 {
   margin-top: 0;
+  letter-spacing: 0.02em;
 }
 
+.hero-shell {
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--moss);
+}
+
+.lede {
+  color: var(--muted);
+  max-width: 66ch;
+}
+
+.topic-form,
 form {
   display: flex;
   gap: 10px;
+  margin: 18px 0 8px;
 }
 
 input,
 button,
 .lens-card {
-  border-radius: 10px;
-  border: 1px solid #a7a084;
+  border-radius: 12px;
+  border: 1px solid var(--edge);
   padding: 10px 12px;
   font-size: 16px;
 }
 
+input {
+  flex: 1;
+  background: var(--paper);
+}
+
 button {
   cursor: pointer;
-  background: #f4b83f;
-  color: #2f2416;
-  border-color: #d09521;
+  background: linear-gradient(180deg, #f0af49 0%, var(--warm) 100%);
+  color: #2f2112;
+  border-color: var(--warm-deep);
+  font-weight: 600;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+.inline-error {
+  color: #7a2424;
 }
 
 .lens-grid {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .lens-card {
-  text-decoration: none;
-  color: #2f2416;
-  background: #fff8ec;
+  text-align: left;
+  color: #2d2318;
+  background: linear-gradient(145deg, #fffaf0 0%, #f7ead2 100%);
+  box-shadow: 0 8px 24px rgba(80, 55, 22, 0.08);
+}
+
+.lens-key {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--moss);
+}
+
+.lens-description {
+  color: #4a3f33;
+}
+
+.lens-cta {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--warm-deep);
+  font-weight: 600;
+}
+
+.exploration-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.meta-pill {
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.72);
+  font-size: 12px;
+}
+
+.hero-card,
+.card-panel,
+.state-banner {
+  background: rgba(255, 253, 247, 0.8);
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 10px 24px rgba(70, 45, 18, 0.06);
+  margin-bottom: 14px;
+}
+
+.concept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.concept-card {
+  background: var(--paper);
+  border: 1px solid #ead8b6;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.connection-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.status-copy {
+  margin: 0 0 6px;
+}
+
+.text-link {
+  color: #6e3f10;
+  font-weight: 600;
+}
+
+@media (max-width: 680px) {
+  .topic-form,
+  form {
+    flex-direction: column;
+  }
+
+  button,
+  input {
+    width: 100%;
+  }
 }

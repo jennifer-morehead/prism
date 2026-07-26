@@ -30,9 +30,9 @@ export function ExplorationPage() {
 
   return (
     <main className="page page-exploration">
-      <header>
-        <p>Session: {topicSessionId}</p>
-        <p>Lens: {lensId}</p>
+      <header className="exploration-head">
+        <p className="meta-pill">Session: {topicSessionId}</p>
+        <p className="meta-pill">Lens: {lensId}</p>
       </header>
 
       <GenerationStateBanner
@@ -52,7 +52,7 @@ export function ExplorationPage() {
           />
         </>
       ) : (
-        <section>
+        <section className="card-panel">
           <h1>Refracted summary</h1>
           <p>No generated output yet.</p>
           <button type="button" onClick={() => void startGeneration()}>
@@ -61,7 +61,7 @@ export function ExplorationPage() {
         </section>
       )}
 
-      <Link to={`/session/${topicSessionId}/lenses`}>
+      <Link className="text-link" to={`/session/${topicSessionId}/lenses`}>
         Choose a different lens
       </Link>
     </main>

@@ -7,10 +7,10 @@ interface RefractedHeroProps {
 
 export function RefractedHero({ lensName, view }: RefractedHeroProps) {
   return (
-    <section>
-      <p>{lensName}</p>
+    <section className="hero-card">
+      <p className="eyebrow">{lensName}</p>
       <h1>{view.title ?? "Generating refracted view"}</h1>
-      <p>{view.summary ?? "Summary is not available yet."}</p>
+      <p className="lede">{view.summary ?? "Summary is not available yet."}</p>
     </section>
   );
 }

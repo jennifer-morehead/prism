@@ -11,9 +11,9 @@ export function ConnectionList({ concepts, connections }: ConnectionListProps) {
   );
 
   return (
-    <section>
+    <section className="card-panel">
       <h2>Connections</h2>
-      <ul>
+      <ul className="connection-list">
         {connections.map((connection) => (
           <li key={connection.id}>
             <strong>

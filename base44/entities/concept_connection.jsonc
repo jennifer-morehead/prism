@@ -19,11 +19,11 @@
       "description": "Target Concept identifier",
     },
     "rationale": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Optional explanation for the relationship",
     },
     "weight": {
-      "type": ["number", "null"],
+      "type": "number",
       "minimum": 0,
       "maximum": 1,
       "description": "Optional relationship strength",

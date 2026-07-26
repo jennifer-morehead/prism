@@ -1,6 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
-
 type TopicSessionStatus =
   | "created"
   | "lens_selected"
@@ -99,7 +96,7 @@ interface ActionRequestEnvelope {
 // Shared Prism action core used by the local dev bridge, tests, and the future Base44 transport.
 
 interface StoreState {
-  lenses: Lens[];
+  topicLenses: Map<string, Lens[]>;
   topicSessions: Map<string, TopicSession>;
   refractedViews: Map<string, RefractedView>;
   concepts: Map<string, Concept[]>;
@@ -108,7 +105,7 @@ interface StoreState {
 }
 
 const store: StoreState = {
-  lenses: loadLenses(),
+  topicLenses: new Map<string, Lens[]>(),
   topicSessions: new Map<string, TopicSession>(),
   refractedViews: new Map<string, RefractedView>(),
   concepts: new Map<string, Concept[]>(),
@@ -120,11 +117,11 @@ let idCounter = 1;
 
 export function resetPrismActionStore() {
   store.topicSessions.clear();
+  store.topicLenses.clear();
   store.refractedViews.clear();
   store.concepts.clear();
   store.connections.clear();
   store.generationRuns.clear();
-  store.lenses = loadLenses();
   idCounter = 1;
 }
 
@@ -142,26 +139,371 @@ function normalizeTopic(topicText: string): string {
   return topicText.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function loadLenses(): Lens[] {
-  const seedPath = path.resolve(process.cwd(), "base44/seeds/lenses.json");
+function slugToken(value: string): string {
+  return normalizeTopic(value)
+    .replace(/[^a-z0-9]+/g, "_")
+    .slice(0, 32);
+}
 
-  try {
-    const raw = fs.readFileSync(seedPath, "utf8");
-    const parsed = JSON.parse(raw) as Lens[];
-    return parsed.sort((a, b) => a.displayOrder - b.displayOrder);
-  } catch {
+function toLens(
+  topicSlug: string,
+  name: string,
+  description: string,
+  order: number,
+): Lens {
+  const key = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+  return {
+    id: `lens_${topicSlug}_${order}`,
+    key,
+    name,
+    description,
+    displayOrder: order,
+    accentColor: null,
+    isActive: true,
+  };
+}
+
+function titleCaseTopic(topicText: string): string {
+  const cleaned = topicText.trim();
+  if (!cleaned) {
+    return "Topic";
+  }
+
+  return cleaned
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function contextualFallbackLenses(
+  topicSlug: string,
+  topicText: string,
+): Lens[] {
+  const normalized = normalizeTopic(topicText);
+  const topicTitle = titleCaseTopic(topicText);
+
+  if (
+    normalized.includes("yoga") ||
+    normalized.includes("meditation") ||
+    normalized.includes("mindfulness")
+  ) {
     return [
-      {
-        id: "lens_fallback",
-        key: "everyday_user",
-        name: "Everyday User",
-        description: "Practical impacts and user experience perspective.",
-        displayOrder: 1,
-        accentColor: "#f4b83f",
-        isActive: true,
-      },
+      toLens(
+        topicSlug,
+        "Movement instructor",
+        "Instruction quality, progression pacing, and student adaptation.",
+        1,
+      ),
+      toLens(
+        topicSlug,
+        "Sports medicine specialist",
+        "Mobility, injury prevention, and recovery constraints.",
+        2,
+      ),
+      toLens(
+        topicSlug,
+        "Meditation practitioner",
+        "Breathwork integration, focus outcomes, and mental steadiness.",
+        3,
+      ),
+      toLens(
+        topicSlug,
+        "Studio owner",
+        "Class operations, retention, and sustainable business delivery.",
+        4,
+      ),
+      toLens(
+        topicSlug,
+        "Yoga philosophy scholar",
+        "Tradition alignment, ethics, and interpretation integrity.",
+        5,
+      ),
     ];
   }
+
+  if (
+    normalized.includes("crypto") ||
+    normalized.includes("blockchain") ||
+    normalized.includes("bitcoin") ||
+    normalized.includes("ethereum")
+  ) {
+    return [
+      toLens(
+        topicSlug,
+        "Blockchain developer",
+        "Protocol design, scalability limits, and implementation risk.",
+        1,
+      ),
+      toLens(
+        topicSlug,
+        "Retail investor",
+        "Volatility tolerance, usability, and portfolio decision pressure.",
+        2,
+      ),
+      toLens(
+        topicSlug,
+        "Monetary economist",
+        "Market structure, liquidity behavior, and macro incentives.",
+        3,
+      ),
+      toLens(
+        topicSlug,
+        "Regulatory analyst",
+        "Compliance constraints, policy direction, and legal uncertainty.",
+        4,
+      ),
+      toLens(
+        topicSlug,
+        "Cybersecurity researcher",
+        "Threat models, custody risks, and exploit mitigation.",
+        5,
+      ),
+    ];
+  }
+
+  if (
+    normalized.includes("health") ||
+    normalized.includes("fitness") ||
+    normalized.includes("therapy")
+  ) {
+    return [
+      toLens(
+        topicSlug,
+        `${topicTitle} coach`,
+        "Daily practice design, motivation loops, and consistency barriers.",
+        1,
+      ),
+      toLens(
+        topicSlug,
+        "Clinical specialist",
+        "Safety bounds, contraindications, and measurable outcomes.",
+        2,
+      ),
+      toLens(
+        topicSlug,
+        "Long-term practitioner",
+        "Adherence, lifestyle fit, and practical trade-offs.",
+        3,
+      ),
+      toLens(
+        topicSlug,
+        "Program operator",
+        "Service delivery, staffing, and quality control at scale.",
+        4,
+      ),
+      toLens(
+        topicSlug,
+        "Outcomes researcher",
+        "Evidence strength, confounders, and evaluation design.",
+        5,
+      ),
+    ];
+  }
+
+  if (
+    normalized.includes("finance") ||
+    normalized.includes("econom") ||
+    normalized.includes("market")
+  ) {
+    return [
+      toLens(
+        topicSlug,
+        `${topicTitle} product builder`,
+        "System design choices, operational constraints, and reliability.",
+        1,
+      ),
+      toLens(
+        topicSlug,
+        "Retail participant",
+        "Accessibility, trust, and risk-adjusted value.",
+        2,
+      ),
+      toLens(
+        topicSlug,
+        "Monetary economist",
+        "Incentive alignment, externalities, and systemic effects.",
+        3,
+      ),
+      toLens(
+        topicSlug,
+        "Regulatory reviewer",
+        "Consumer protection requirements and compliance burden.",
+        4,
+      ),
+      toLens(
+        topicSlug,
+        "Fraud and security analyst",
+        "Attack paths, controls, and incident response readiness.",
+        5,
+      ),
+    ];
+  }
+
+  if (
+    normalized.includes("ai") ||
+    normalized.includes("software") ||
+    normalized.includes("data") ||
+    normalized.includes("app")
+  ) {
+    return [
+      toLens(
+        topicSlug,
+        `${topicTitle} engineer`,
+        "Architecture decisions, failure handling, and maintainability trade-offs.",
+        1,
+      ),
+      toLens(
+        topicSlug,
+        "Product manager",
+        "User value clarity, roadmap sequencing, and delivery scope.",
+        2,
+      ),
+      toLens(
+        topicSlug,
+        "Everyday end user",
+        "Adoption friction, usability, and trust signals.",
+        3,
+      ),
+      toLens(
+        topicSlug,
+        "Safety and ethics reviewer",
+        "Misuse risk, fairness, and governance controls.",
+        4,
+      ),
+      toLens(
+        topicSlug,
+        "Platform operator",
+        "Cost, latency, observability, and uptime accountability.",
+        5,
+      ),
+    ];
+  }
+
+  // Placeholder abstraction: deterministic now, swappable with model-based role generation later.
+  return [
+    toLens(
+      topicSlug,
+      `${topicTitle} practitioner`,
+      "Hands-on workflows, constraints, and practical decisions.",
+      1,
+    ),
+    toLens(
+      topicSlug,
+      `${topicTitle} researcher`,
+      "Evidence quality, uncertainty, and open questions.",
+      2,
+    ),
+    toLens(
+      topicSlug,
+      "Business operator",
+      "Economic viability, resource planning, and execution risks.",
+      3,
+    ),
+    toLens(
+      topicSlug,
+      "Policy and governance analyst",
+      "Regulatory context, accountability, and societal impact.",
+      4,
+    ),
+    toLens(
+      topicSlug,
+      "Community advocate",
+      "Accessibility, inclusion, and long-term public outcomes.",
+      5,
+    ),
+  ];
+}
+
+function generateTopicLenses(topicText: string): Lens[] {
+  const topicSlug = slugToken(topicText) || "topic";
+  const normalized = normalizeTopic(topicText);
+
+  if (normalized.includes("dog") || normalized.includes("puppy")) {
+    return [
+      toLens(
+        topicSlug,
+        "First-time dog owner",
+        "Daily routines, behavior basics, and what is manageable at home.",
+        1,
+      ),
+      toLens(
+        topicSlug,
+        "Professional trainer",
+        "Training progression, reinforcement design, and skill transfer.",
+        2,
+      ),
+      toLens(
+        topicSlug,
+        "Veterinary behavior specialist",
+        "Medical and behavioral contributors to difficult patterns.",
+        3,
+      ),
+      toLens(
+        topicSlug,
+        "Animal welfare advocate",
+        "Stress minimization, humane methods, and wellbeing outcomes.",
+        4,
+      ),
+      toLens(
+        topicSlug,
+        "Working dog handler",
+        "Reliability under distraction, consistency, and task performance.",
+        5,
+      ),
+    ];
+  }
+
+  if (normalized.includes("coffee")) {
+    return [
+      toLens(
+        topicSlug,
+        "Coffee drinker",
+        "Taste, convenience, cost, and day-to-day ritual value.",
+        1,
+      ),
+      toLens(
+        topicSlug,
+        "Specialty roaster",
+        "Bean quality, roast profile control, and consistency standards.",
+        2,
+      ),
+      toLens(
+        topicSlug,
+        "Coffee farmer",
+        "Yield stability, pricing pressure, and climate exposure.",
+        3,
+      ),
+      toLens(
+        topicSlug,
+        "Sustainability researcher",
+        "Environmental impact, traceability, and long-term resilience.",
+        4,
+      ),
+      toLens(
+        topicSlug,
+        "Cafe owner",
+        "Margins, customer retention, and operational throughput.",
+        5,
+      ),
+    ];
+  }
+
+  return contextualFallbackLenses(topicSlug, topicText);
+}
+
+function getTopicLenses(topicSessionId: string): Lens[] {
+  const topicSession = ensureTopicSession(topicSessionId);
+  const existing = store.topicLenses.get(topicSessionId);
+  if (existing && existing.length > 0) {
+    return existing;
+  }
+
+  const generated = generateTopicLenses(topicSession.topicText);
+  store.topicLenses.set(topicSessionId, generated);
+  return generated;
 }
 
 function ok<T>(requestId: string | undefined, data: T) {
@@ -210,12 +552,16 @@ function ensureTopicSession(topicSessionId: unknown): TopicSession {
   return session;
 }
 
-function ensureLens(lensId: unknown): Lens {
+function ensureLens(topicSessionId: unknown, lensId: unknown): Lens {
+  if (typeof topicSessionId !== "string") {
+    throw new Error("topicSessionId must be a string");
+  }
   if (typeof lensId !== "string") {
     throw new Error("lensId must be a string");
   }
 
-  const lens = store.lenses.find((item) => item.id === lensId);
+  const lenses = getTopicLenses(topicSessionId);
+  const lens = lenses.find((item) => item.id === lensId);
   if (!lens) {
     throw new Error("Lens not found");
   }
@@ -492,7 +838,9 @@ function advanceRun(run: GenerationRun): GenerationRun {
 
   const topic = store.topicSessions.get(run.topicSessionId);
   const view = store.refractedViews.get(run.refractedViewId);
-  const lens = store.lenses.find((item) => item.id === run.lensId);
+  const lens = store.topicLenses
+    .get(run.topicSessionId)
+    ?.find((item) => item.id === run.lensId);
 
   if (!topic || !view || !lens) {
     run.status = "failed";
@@ -552,7 +900,10 @@ export function executeAction(
 
     store.topicSessions.set(topicSession.id, topicSession);
 
-    const recommendedLensIds = store.lenses
+    const topicLenses = generateTopicLenses(topicSession.topicText);
+    store.topicLenses.set(topicSession.id, topicLenses);
+
+    const recommendedLensIds = topicLenses
       .filter((lens) => lens.isActive)
       .slice(0, 3)
       .map((lens) => lens.id);
@@ -560,8 +911,18 @@ export function executeAction(
   }
 
   if (action === "listLenses") {
+    if (typeof payload.topicSessionId !== "string") {
+      return fail(
+        requestId,
+        "VALIDATION_ERROR",
+        "topicSessionId is required",
+        false,
+        { field: "topicSessionId" },
+      );
+    }
+
     const includeInactive = payload.includeInactive === true;
-    const lenses = store.lenses
+    const lenses = getTopicLenses(payload.topicSessionId)
       .filter((lens) => includeInactive || lens.isActive)
       .sort((a, b) => a.displayOrder - b.displayOrder);
 
@@ -571,7 +932,7 @@ export function executeAction(
   if (action === "selectLens") {
     try {
       const topicSession = ensureTopicSession(payload.topicSessionId);
-      const lens = ensureLens(payload.lensId);
+      const lens = ensureLens(payload.topicSessionId, payload.lensId);
       const view = ensureRefractedView(topicSession.id, lens.id);
 
       topicSession.selectedLensId = lens.id;
@@ -591,7 +952,7 @@ export function executeAction(
   if (action === "generateLensView" || action === "regenerateLensView") {
     try {
       const topicSession = ensureTopicSession(payload.topicSessionId);
-      const lens = ensureLens(payload.lensId);
+      const lens = ensureLens(payload.topicSessionId, payload.lensId);
       const view = ensureRefractedView(topicSession.id, lens.id);
 
       topicSession.selectedLensId = lens.id;
@@ -664,7 +1025,7 @@ export function executeAction(
   if (action === "getLensExplorationView") {
     try {
       const topicSession = ensureTopicSession(payload.topicSessionId);
-      const lens = ensureLens(payload.lensId);
+      const lens = ensureLens(payload.topicSessionId, payload.lensId);
       const view = ensureRefractedView(topicSession.id, lens.id);
 
       const latestRun = getLatestRunForView(view.id);
@@ -701,7 +1062,7 @@ export function executeAction(
     try {
       const topicSession = ensureTopicSession(payload.topicSessionId);
       const selectedLens = topicSession.selectedLensId
-        ? (store.lenses.find(
+        ? (getTopicLenses(topicSession.id).find(
             (lens) => lens.id === topicSession.selectedLensId,
           ) ?? null)
         : null;

@@ -141,6 +141,7 @@ export interface RegenerateLensViewData {
 
 export interface ListLensesPayload {
   includeInactive?: boolean;
+  topicSessionId?: string;
 }
 
 export interface ListLensesData {

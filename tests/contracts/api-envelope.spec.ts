@@ -8,7 +8,20 @@ describe("API envelope contract", () => {
   test("returns ok/data/meta on success and error/meta on failure", () => {
     resetPrismActionStore();
 
-    const success = executeAction("listLenses", {}, "req-1") as {
+    const created = executeAction(
+      "createTopicSession",
+      { topicText: "Lens contract check" },
+      "req-0",
+    ) as {
+      ok: true;
+      data: { topicSession: { id: string } };
+    };
+
+    const success = executeAction(
+      "listLenses",
+      { topicSessionId: created.data.topicSession.id },
+      "req-1",
+    ) as {
       ok: true;
       data: { lenses: unknown[] };
       meta: { requestId?: string; serverTs: string };
