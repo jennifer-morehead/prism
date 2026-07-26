@@ -67,7 +67,8 @@ h3 {
   margin-bottom: 44px;
 }
 
-.eyebrow {
+.eyebrow,
+.brand-mark {
   display: inline-block;
   margin: 0 0 18px;
   color: var(--violet);
@@ -75,6 +76,25 @@ h3 {
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
+}
+
+.brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.brand-mark::before {
+  width: 16px;
+  height: 16px;
+  content: "";
+  background: linear-gradient(135deg, #ff4aa3 0%, #ffb000 28%, #1bd39c 52%, #29c9ff 74%, #9a67ff 100%);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 
 .lede,
@@ -175,19 +195,19 @@ button:disabled {
   box-shadow: inset 0 3px 0 var(--violet);
 }
 
-.lens-card::after {
-  position: absolute;
-  top: 28px;
-  right: 32px;
-  content: "→";
-  color: var(--muted);
-  font-size: 30px;
-  opacity: 0;
-  transition: opacity 140ms ease;
+.lens-card:hover:not(:disabled) {
+  background: var(--surface);
+  transform: none;
 }
 
-.lens-card:hover::after {
-  opacity: 1;
+.lens-card-content {
+  display: block;
+  transform-origin: left center;
+  transition: transform 140ms ease;
+}
+
+.lens-card:hover .lens-card-content {
+  transform: scale(1.1);
 }
 
 .lens-card:nth-child(5n + 1) {
@@ -332,6 +352,26 @@ button:disabled {
   color: #cbb8ff;
   font-weight: 700;
   text-decoration: none;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 48px;
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--ink);
+}
+
+.back-link span {
+  font-size: 24px;
+  line-height: 1;
 }
 
 .text-link:hover {

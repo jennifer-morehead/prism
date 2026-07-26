@@ -4,7 +4,7 @@ export function TopicEntryPage() {
   return (
     <main className="page page-topic">
       <section className="hero-shell">
-        <p className="eyebrow">Prism</p>
+        <p className="brand-mark">Prism</p>
         <h1>
           See any topic from
           <br />

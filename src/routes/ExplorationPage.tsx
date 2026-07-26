@@ -31,6 +31,10 @@ export function ExplorationPage() {
 
   return (
     <main className="page page-exploration">
+      <Link className="back-link" to={`/session/${topicSessionId}/lenses`}>
+        <span aria-hidden="true">←</span>
+        All perspectives
+      </Link>
       <GenerationStateBanner
         status={status}
         progressHint={progressHint}
@@ -57,9 +61,6 @@ export function ExplorationPage() {
         </section>
       )}
 
-      <Link className="text-link" to={`/session/${topicSessionId}/lenses`}>
-        Choose a different lens
-      </Link>
       <NewTopicPrompt />
     </main>
   );

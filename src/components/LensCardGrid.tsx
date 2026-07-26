@@ -15,9 +15,11 @@ export function LensCardGrid({ lenses, onSelect }: LensCardGridProps) {
           className="lens-card"
           onClick={() => onSelect(lens.id)}
         >
-          <h2>{lens.name}</h2>
-          <p className="lens-description">{lens.description}</p>
-          <span className="lens-cta">Use this lens</span>
+          <span className="lens-card-content">
+            <h2>{lens.name}</h2>
+            <p className="lens-description">{lens.description}</p>
+            <span className="lens-cta">Use this lens</span>
+          </span>
         </button>
       ))}
     </div>

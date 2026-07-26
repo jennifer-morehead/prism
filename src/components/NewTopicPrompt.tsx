@@ -1,9 +1,10 @@
 import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { createTopicSession } from "../features/topic/topic.api";
 
 export function NewTopicPrompt() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [topic, setTopic] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +35,11 @@ export function NewTopicPrompt() {
           type="text"
           value={topic}
           onChange={(event) => setTopic(event.target.value)}
-          placeholder="Enter a topic to explore"
+          placeholder={
+            pathname === "/"
+              ? "Enter a topic to explore"
+              : "Enter a new topic to explore"
+          }
           aria-label="New topic"
           required
         />
