@@ -60,26 +60,24 @@ export function LensSelectionPage() {
     }
   };
 
-  const selectableLenses = lenses.map((lens) => ({
-    ...lens,
-    description: `${lens.description} Select this lens to generate a refracted view.`,
-  }));
-
   return (
     <main className="page page-lenses">
-      <NewTopicPrompt compact />
       <section className="hero-shell">
-        <p className="eyebrow">Step 2</p>
-        <h1>Select A Perspective Lens</h1>
+        <p className="eyebrow">Perspectives</p>
+        <h1>Select a lens</h1>
+        <p className="lede">
+          Each lens reveals a distinct way to understand this topic.
+        </p>
       </section>
       {isLoading ? <p className="status-copy">Loading lenses...</p> : null}
       {!isLoading && topicSessionId ? (
         <LensCardGrid
-          lenses={selectableLenses}
+          lenses={lenses}
           onSelect={(lensId) => void handleSelect(lensId)}
         />
       ) : null}
       {error ? <p className="inline-error">{error}</p> : null}
+      <NewTopicPrompt />
     </main>
   );
 }

@@ -12,7 +12,8 @@ export function ConceptCardList({ concepts }: ConceptCardListProps) {
         {concepts.map((concept) => (
           <article className="concept-card" key={concept.id}>
             <h3>
-              {concept.ordinal}. {concept.title}
+              <span className="concept-number">{concept.ordinal}</span>
+              {concept.title}
             </h3>
             <p>{concept.body}</p>
           </article>

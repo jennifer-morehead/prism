@@ -2,11 +2,7 @@ import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createTopicSession } from "../features/topic/topic.api";
 
-interface NewTopicPromptProps {
-  compact?: boolean;
-}
-
-export function NewTopicPrompt({ compact = false }: NewTopicPromptProps) {
+export function NewTopicPrompt() {
   const navigate = useNavigate();
   const [topic, setTopic] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,8 +28,7 @@ export function NewTopicPrompt({ compact = false }: NewTopicPromptProps) {
   };
 
   return (
-    <section className={`new-topic-prompt ${compact ? "is-compact" : ""}`}>
-      {compact ? <p className="new-topic-label">Explore a new topic</p> : null}
+    <section className="new-topic-prompt">
       <form onSubmit={handleSubmit} className="topic-form">
         <input
           type="text"
@@ -44,7 +39,7 @@ export function NewTopicPrompt({ compact = false }: NewTopicPromptProps) {
           required
         />
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Opening..." : "Explore"}
+          {isSubmitting ? "Refracting..." : "Explore"}
         </button>
       </form>
       {error ? <p className="inline-error">{error}</p> : null}

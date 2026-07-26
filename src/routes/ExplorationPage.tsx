@@ -31,12 +31,6 @@ export function ExplorationPage() {
 
   return (
     <main className="page page-exploration">
-      <NewTopicPrompt compact />
-      <header className="exploration-head">
-        <p className="meta-pill">Session: {topicSessionId}</p>
-        <p className="meta-pill">Lens: {lensId}</p>
-      </header>
-
       <GenerationStateBanner
         status={status}
         progressHint={progressHint}
@@ -46,7 +40,7 @@ export function ExplorationPage() {
 
       {data ? (
         <>
-          <RefractedHero lensName={lensId} view={data.refractedView} />
+          <RefractedHero view={data.refractedView} />
           <ConceptCardList concepts={data.concepts} />
           <ConnectionList
             concepts={data.concepts}
@@ -66,6 +60,7 @@ export function ExplorationPage() {
       <Link className="text-link" to={`/session/${topicSessionId}/lenses`}>
         Choose a different lens
       </Link>
+      <NewTopicPrompt />
     </main>
   );
 }

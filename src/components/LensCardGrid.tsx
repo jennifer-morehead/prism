@@ -15,7 +15,6 @@ export function LensCardGrid({ lenses, onSelect }: LensCardGridProps) {
           className="lens-card"
           onClick={() => onSelect(lens.id)}
         >
-          <p className="lens-key">{lens.key.replace(/_/g, " ")}</p>
           <h2>{lens.name}</h2>
           <p className="lens-description">{lens.description}</p>
           <span className="lens-cta">Use this lens</span>
