@@ -1,0 +1,57 @@
+{
+  "name": "TopicLensCache",
+  "type": "object",
+  "properties": {
+    "normalizedTopic": {
+      "type": "string",
+      "description": "Trimmed, lowercase topic key with repeated whitespace collapsed",
+    },
+    "lenses": {
+      "type": "array",
+      "description": "Validated four-lens response from a successful AI generation",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "key": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "displayOrder": { "type": "integer" },
+          "isActive": { "type": "boolean" },
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "description",
+          "displayOrder",
+          "isActive",
+        ],
+      },
+    },
+    "status": {
+      "type": "string",
+      "enum": ["succeeded"],
+      "description": "Only successful AI generations are reusable",
+    },
+    "source": {
+      "type": "string",
+      "enum": ["ai"],
+      "description": "Excludes deterministic fallback lenses from the cache",
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the AI response was validated",
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+    },
+  },
+  "required": ["normalizedTopic", "lenses", "status", "source", "generatedAt"],
+}

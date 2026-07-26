@@ -1,0 +1,79 @@
+{
+  "name": "LensExplorationCache",
+  "type": "object",
+  "properties": {
+    "normalizedTopic": {
+      "type": "string",
+      "description": "Trimmed, lowercase topic key with repeated whitespace collapsed",
+    },
+    "lensKey": {
+      "type": "string",
+      "description": "Stable key for the selected contextual lens",
+    },
+    "title": { "type": "string" },
+    "summary": { "type": "string" },
+    "concepts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "body": { "type": "string" },
+          "confidenceScore": { "type": "number" },
+        },
+        "required": ["title", "body", "confidenceScore"],
+      },
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "sourceOrdinal": { "type": "integer" },
+          "relationVerb": { "type": "string" },
+          "targetOrdinal": { "type": "integer" },
+          "rationale": { "type": "string" },
+          "weight": { "type": "number" },
+        },
+        "required": [
+          "sourceOrdinal",
+          "relationVerb",
+          "targetOrdinal",
+          "rationale",
+          "weight",
+        ],
+      },
+    },
+    "status": {
+      "type": "string",
+      "enum": ["succeeded"],
+    },
+    "source": {
+      "type": "string",
+      "enum": ["ai"],
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+    },
+  },
+  "required": [
+    "normalizedTopic",
+    "lensKey",
+    "title",
+    "summary",
+    "concepts",
+    "connections",
+    "status",
+    "source",
+    "generatedAt",
+  ],
+}

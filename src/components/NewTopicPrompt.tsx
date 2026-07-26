@@ -1,55 +1,40 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createTopicSession } from "../features/topic/topic.api";
-
-const suggestedTopics = [
-  "Urban gardens",
-  "Public libraries",
-  "Renewable energy",
-  "Sleep and learning",
-  "Ocean conservation",
-  "Walkable cities",
-  "Community gardens",
-  "Houseplants",
-  "The history of maps",
-  "Music and concentration",
-  "A world without traffic lights",
-  "Why some places feel like home",
-  "What makes a city memorable",
-  "The hidden life of a neighborhood park",
-  "How food traditions travel",
-  "The future of play",
-  "Why bees matter",
-  "The art of a good question",
-  "How bicycles changed cities",
-  "Designing for a rainy day",
-];
-
-function randomSuggestedTopics(): string[] {
-  const shuffled = [...suggestedTopics];
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [shuffled[index], shuffled[swapIndex]] = [
-      shuffled[swapIndex],
-      shuffled[index],
-    ];
-  }
-  return shuffled.slice(0, 5);
-}
+import {
+  randomDemoTopic,
+  randomDemoTopicChoices,
+} from "../lib/demoTopics";
 
 interface NewTopicPromptProps {
   showSuggestions?: boolean;
+  excludeTopic?: string;
 }
 
 export function NewTopicPrompt({
   showSuggestions = true,
+  excludeTopic,
 }: NewTopicPromptProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const [topic, setTopic] = useState("");
+  const [topic, setTopic] = useState(() => randomDemoTopic(excludeTopic));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [suggestions] = useState(randomSuggestedTopics);
+  const [suggestions, setSuggestions] = useState(() =>
+    randomDemoTopicChoices(topic),
+  );
+
+  useEffect(() => {
+    if (!excludeTopic) return;
+    const nextTopic = randomDemoTopic(excludeTopic);
+    setTopic(nextTopic);
+    setSuggestions(randomDemoTopicChoices(nextTopic));
+  }, [excludeTopic]);
+
+  const chooseTopic = (nextTopic: string) => {
+    setTopic(nextTopic);
+    setSuggestions(randomDemoTopicChoices(nextTopic));
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -76,13 +61,13 @@ export function NewTopicPrompt({
         <input
           type="text"
           value={topic}
-          onChange={(event) => setTopic(event.target.value)}
+          readOnly
           placeholder={
             pathname === "/"
               ? "Enter a topic to explore"
               : "Enter a new topic to explore"
           }
-          aria-label="New topic"
+          aria-label="Selected topic"
           maxLength={120}
           required
         />
@@ -91,19 +76,24 @@ export function NewTopicPrompt({
         </button>
       </form>
       {showSuggestions ? (
-        <div className="topic-suggestions" aria-label="Suggested topics">
-          <span className="suggestions-label">Try:</span>
-          {suggestions.map((suggestion) => (
-            <button
-              key={suggestion}
-              className="suggested-topic"
-              type="button"
-              onClick={() => setTopic(suggestion)}
-            >
-              {suggestion}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="topic-suggestions" aria-label="Suggested topics">
+            <span className="suggestions-label">Try:</span>
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                className="suggested-topic"
+                type="button"
+                onClick={() => chooseTopic(suggestion)}
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+          <p className="custom-topic-availability availability-copy">
+            Custom topics available in full Prism
+          </p>
+        </>
       ) : null}
       {error ? <p className="inline-error">{error}</p> : null}
     </section>

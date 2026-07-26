@@ -186,6 +186,23 @@ describe("Prism action runtime", () => {
         "cache-2",
       ),
     );
+    const immediateReuse = data<{ topicSession: { id: string } }>(
+      executeAction(
+        "createTopicSession",
+        { topicText: "  YOGA   " },
+        "cache-2a",
+      ),
+    );
+    const immediateReuseLenses = data<{ lenses: Array<{ id: string }> }>(
+      executeAction(
+        "listLenses",
+        { topicSessionId: immediateReuse.topicSession.id },
+        "cache-2b",
+      ),
+    );
+    expect(immediateReuseLenses.lenses.map((lens) => lens.id)).toEqual(
+      sourceLenses.lenses.map((lens) => lens.id),
+    );
     const lensId = sourceLenses.lenses[0]?.id;
     if (!lensId) throw new Error("Expected a source lens");
 
@@ -213,6 +230,28 @@ describe("Prism action runtime", () => {
         "cache-8",
       ),
     );
+    data(
+      executeAction(
+        "selectLens",
+        { topicSessionId: immediateReuse.topicSession.id, lensId },
+        "cache-8a",
+      ),
+    );
+    const cachedRun = data<{ generationRunId: string }>(
+      executeAction(
+        "generateLensView",
+        { topicSessionId: immediateReuse.topicSession.id, lensId },
+        "cache-8b",
+      ),
+    );
+    const cachedStatus = data<{ generationRun: { status: string } }>(
+      executeAction(
+        "getGenerationStatus",
+        { generationRunId: cachedRun.generationRunId },
+        "cache-8c",
+      ),
+    );
+    expect(cachedStatus.generationRun.status).toBe("succeeded");
     data(
       executeAction(
         "generateFollowOnLenses",

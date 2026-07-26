@@ -1,4 +1,5 @@
 import { base44 } from "./base44Client";
+import { isDemoTopic } from "./demoTopics";
 import {
   ConceptConnectionSummary,
   ConceptSummary,
@@ -28,11 +29,23 @@ import {
 
 type GenerationStatus = GenerationRunSummary["status"];
 const MAX_TOPIC_LENSES = 4;
+const cacheOnlyMode = import.meta.env.VITE_PRISM_CACHE_ONLY === "true";
 
 type StoredLensSnapshot = Omit<LensSummary, "accentColor">;
 
 interface TopicSessionRecord extends TopicSessionSummary {
   generatedLenses?: StoredLensSnapshot[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface TopicLensCacheRecord {
+  id: string;
+  normalizedTopic: string;
+  lenses: StoredLensSnapshot[];
+  status: "succeeded";
+  source: "ai";
+  generatedAt: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -128,6 +141,11 @@ function toDynamicLens(
 interface GeneratedLensCandidate {
   name: string;
   description?: string;
+}
+
+interface TopicLensGeneration {
+  lenses: LensSummary[];
+  source: "ai" | "deterministic";
 }
 
 function normalizeGeneratedLensCandidates(
@@ -286,6 +304,17 @@ interface GeneratedExploration {
     rationale: string;
     weight: number;
   }>;
+}
+
+interface LensExplorationCacheRecord extends GeneratedExploration {
+  id: string;
+  normalizedTopic: string;
+  lensKey: string;
+  status: "succeeded";
+  source: "ai";
+  generatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 function normalizeGeneratedExploration(value: unknown): GeneratedExploration | null {
@@ -685,13 +714,24 @@ function generateTopicLensesDeterministic(topicText: string): LensSummary[] {
   return contextualFallbackLenses(topicSlug, topicText);
 }
 
-async function generateTopicLenses(topicText: string): Promise<LensSummary[]> {
+async function generateTopicLenses(
+  topicText: string,
+): Promise<TopicLensGeneration> {
   const aiLenses = await tryGenerateTopicLensesWithAi(topicText);
   if (aiLenses && aiLenses.length >= 4) {
-    return aiLenses.slice(0, MAX_TOPIC_LENSES);
+    return {
+      lenses: aiLenses.slice(0, MAX_TOPIC_LENSES),
+      source: "ai",
+    };
   }
 
-  return generateTopicLensesDeterministic(topicText).slice(0, MAX_TOPIC_LENSES);
+  return {
+    lenses: generateTopicLensesDeterministic(topicText).slice(
+      0,
+      MAX_TOPIC_LENSES,
+    ),
+    source: "deterministic",
+  };
 }
 
 function toTopicSessionSummary(
@@ -830,39 +870,111 @@ async function listAllGenerationRuns(): Promise<GenerationRunRecord[]> {
   ).list()) as unknown as GenerationRunRecord[];
 }
 
-async function findCompletedLensCache(
+async function findInitialLensCache(
   normalizedTopic: string,
 ): Promise<LensSummary[] | null> {
-  const [sessions, views, runs] = await Promise.all([
-    listAllTopicSessions(),
-    listAllRefractedViews(),
-    listAllGenerationRuns(),
-  ]);
-  const candidates = sessions
+  const caches = (await getEntity("TopicLensCache").list()) as unknown as TopicLensCacheRecord[];
+  const cache = caches
     .filter(
-      (session) =>
-        session.normalizedTopic === normalizedTopic &&
-        session.status === "ready" &&
-        session.generatedLenses &&
-        session.generatedLenses.length >= 4,
+      (item) =>
+        item.normalizedTopic === normalizedTopic &&
+        item.status === "succeeded" &&
+        item.source === "ai" &&
+        item.lenses.length >= MAX_TOPIC_LENSES,
     )
-    .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
+    .sort((a, b) => (b.updatedAt ?? b.generatedAt).localeCompare(a.updatedAt ?? a.generatedAt))[0];
 
-  for (const session of candidates) {
-    const hasReadyView = views.some(
-      (view) =>
-        view.id === session.activeRefractedViewId && view.status === "ready",
-    );
-    const hasSucceededRun = runs.some(
-      (run) =>
-        run.topicSessionId === session.id && run.status === "succeeded",
-    );
-    if (hasReadyView && hasSucceededRun) {
-      return fromStoredLensSnapshot(session.generatedLenses ?? []);
-    }
+  return cache ? fromStoredLensSnapshot(cache.lenses) : null;
+}
+
+async function saveInitialLensCache(
+  normalizedTopic: string,
+  lenses: LensSummary[],
+): Promise<void> {
+  const entity = getEntity("TopicLensCache");
+  const caches = (await entity.list()) as unknown as TopicLensCacheRecord[];
+  const existing = caches
+    .filter((item) => item.normalizedTopic === normalizedTopic)
+    .sort((a, b) => (b.updatedAt ?? b.generatedAt).localeCompare(a.updatedAt ?? a.generatedAt))[0];
+  const timestamp = nowIso();
+  const record = {
+    normalizedTopic,
+    lenses: toStoredLensSnapshot(lenses),
+    status: "succeeded",
+    source: "ai",
+    generatedAt: timestamp,
+    updatedAt: timestamp,
+  };
+
+  if (existing) {
+    await entity.update(existing.id, record);
+    return;
   }
 
-  return null;
+  await entity.create({ ...record, createdAt: timestamp });
+}
+
+async function findLensExplorationCache(
+  normalizedTopic: string,
+  lensKey: string,
+): Promise<GeneratedExploration | null> {
+  const records = (await getEntity(
+    "LensExplorationCache",
+  ).list()) as unknown as LensExplorationCacheRecord[];
+  const cache = records
+    .filter(
+      (item) =>
+        item.normalizedTopic === normalizedTopic &&
+        item.lensKey === lensKey &&
+        item.status === "succeeded" &&
+        item.source === "ai",
+    )
+    .sort((a, b) =>
+      (b.updatedAt ?? b.generatedAt).localeCompare(
+        a.updatedAt ?? a.generatedAt,
+      ),
+    )[0];
+
+  return cache ? normalizeGeneratedExploration(cache) : null;
+}
+
+async function saveLensExplorationCache(
+  normalizedTopic: string,
+  lensKey: string,
+  exploration: GeneratedExploration,
+): Promise<void> {
+  const entity = getEntity("LensExplorationCache");
+  const records = (await entity.list()) as unknown as LensExplorationCacheRecord[];
+  const existing = records
+    .filter(
+      (item) =>
+        item.normalizedTopic === normalizedTopic && item.lensKey === lensKey,
+    )
+    .sort((a, b) =>
+      (b.updatedAt ?? b.generatedAt).localeCompare(
+        a.updatedAt ?? a.generatedAt,
+      ),
+    )[0];
+  const timestamp = nowIso();
+  const record = {
+    normalizedTopic,
+    lensKey,
+    title: exploration.title,
+    summary: exploration.summary,
+    concepts: exploration.concepts,
+    connections: exploration.connections,
+    status: "succeeded",
+    source: "ai",
+    generatedAt: timestamp,
+    updatedAt: timestamp,
+  };
+
+  if (existing) {
+    await entity.update(existing.id, record);
+    return;
+  }
+
+  await entity.create({ ...record, createdAt: timestamp });
 }
 
 async function listConceptsForView(
@@ -883,6 +995,66 @@ async function listConnectionsForView(
     "ConceptConnection",
   ).list()) as unknown as ConceptConnectionRecord[];
   return records.filter((item) => item.refractedViewId === refractedViewId);
+}
+
+async function persistExploration(
+  topicSessionId: string,
+  view: RefractedViewRecord,
+  exploration: GeneratedExploration,
+): Promise<void> {
+  const conceptEntity = getEntity("Concept");
+  const connectionEntity = getEntity("ConceptConnection");
+  const oldConnections = await listConnectionsForView(view.id);
+  const oldConcepts = await listConceptsForView(view.id);
+  await Promise.all(
+    oldConnections.map((connection) => connectionEntity.delete(connection.id)),
+  );
+  await Promise.all(oldConcepts.map((concept) => conceptEntity.delete(concept.id)));
+
+  const createdConcepts: ConceptSummary[] = [];
+  for (const [index, concept] of exploration.concepts.entries()) {
+    const created = (await conceptEntity.create({
+      refractedViewId: view.id,
+      ordinal: index + 1,
+      title: concept.title,
+      body: concept.body,
+      confidenceScore: concept.confidenceScore,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    })) as unknown as ConceptSummary;
+    createdConcepts.push(created);
+  }
+
+  for (const connection of exploration.connections) {
+    const source = createdConcepts[connection.sourceOrdinal - 1];
+    const target = createdConcepts[connection.targetOrdinal - 1];
+    if (!source || !target || source.id === target.id) continue;
+    await connectionEntity.create({
+      refractedViewId: view.id,
+      sourceConceptId: source.id,
+      relationVerb: connection.relationVerb,
+      targetConceptId: target.id,
+      rationale: connection.rationale,
+      weight: connection.weight,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+  }
+
+  await getEntity("RefractedView").update(view.id, {
+    title: exploration.title,
+    summary: exploration.summary,
+    status: "ready",
+    retrievalSummary: "AI-generated exploration through the selected lens.",
+    errorMessage: null,
+    generatedAt: nowIso(),
+    updatedAt: nowIso(),
+  });
+  await getEntity("TopicSession").update(topicSessionId, {
+    status: "ready",
+    activeRefractedViewId: view.id,
+    updatedAt: nowIso(),
+  });
 }
 
 async function findTopicSession(
@@ -910,12 +1082,15 @@ async function getTopicLenses(topicSessionId: string): Promise<LensSummary[]> {
   }
 
   // Backfill sessions created before generated lenses were stored as a snapshot.
-  const generatedLenses = await generateTopicLenses(session.topicText);
+  const generation = await generateTopicLenses(session.topicText);
+  if (generation.source === "ai") {
+    await saveInitialLensCache(normalizeTopic(session.topicText), generation.lenses);
+  }
   await getEntity("TopicSession").update(session.id, {
-    generatedLenses: toStoredLensSnapshot(generatedLenses),
+    generatedLenses: toStoredLensSnapshot(generation.lenses),
     updatedAt: nowIso(),
   });
-  return generatedLenses;
+  return generation.lenses;
 }
 
 async function findLensForTopicSession(
@@ -994,8 +1169,6 @@ async function advanceGeneration(
 
   const topic = await findTopicSession(view.topicSessionId);
   const lens = await findLensForTopicSession(view.topicSessionId, view.lensId);
-  const conceptEntity = getEntity("Concept");
-  const connectionEntity = getEntity("ConceptConnection");
 
   try {
     await getEntity("GenerationRun").update(run.id, {
@@ -1003,57 +1176,12 @@ async function advanceGeneration(
       updatedAt: nowIso(),
     });
     const generated = await generateLensExplorationWithAi(topic.topicText, lens);
-
-    // Regeneration reuses the view, so remove its old graph before saving the new one.
-    const oldConnections = await listConnectionsForView(view.id);
-    const oldConcepts = await listConceptsForView(view.id);
-    await Promise.all(oldConnections.map((connection) => connectionEntity.delete(connection.id)));
-    await Promise.all(oldConcepts.map((concept) => conceptEntity.delete(concept.id)));
-
-    const createdConcepts: ConceptSummary[] = [];
-    for (const [index, concept] of generated.concepts.entries()) {
-      const created = (await conceptEntity.create({
-        refractedViewId: view.id,
-        ordinal: index + 1,
-        title: concept.title,
-        body: concept.body,
-        confidenceScore: concept.confidenceScore,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      })) as unknown as ConceptSummary;
-      createdConcepts.push(created);
-    }
-
-    for (const connection of generated.connections) {
-      const source = createdConcepts[connection.sourceOrdinal - 1];
-      const target = createdConcepts[connection.targetOrdinal - 1];
-      if (!source || !target || source.id === target.id) continue;
-      await connectionEntity.create({
-        refractedViewId: view.id,
-        sourceConceptId: source.id,
-        relationVerb: connection.relationVerb,
-        targetConceptId: target.id,
-        rationale: connection.rationale,
-        weight: connection.weight,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
-    }
-
-    await getEntity("RefractedView").update(view.id, {
-      title: generated.title,
-      summary: generated.summary,
-      status: "ready",
-      retrievalSummary: "AI-generated exploration through the selected lens.",
-      errorMessage: null,
-      generatedAt: nowIso(),
-      updatedAt: nowIso(),
-    });
-    await getEntity("TopicSession").update(topic.id, {
-      status: "ready",
-      activeRefractedViewId: view.id,
-      updatedAt: nowIso(),
-    });
+    await persistExploration(topic.id, view, generated);
+    await saveLensExplorationCache(
+      normalizeTopic(topic.topicText),
+      lens.key,
+      generated,
+    );
 
     return (await getEntity("GenerationRun").update(run.id, {
       status: "succeeded",
@@ -1089,6 +1217,9 @@ export async function createTopicSession(
   if (payload.topicText.trim().length > 120) {
     throw new Error("topicText must be 120 characters or fewer");
   }
+  if (!isDemoTopic(payload.topicText)) {
+    throw new Error("Choose one of the featured Prism topics.");
+  }
 
   const functionResult = await tryInvoke<
     CreateTopicSessionPayload,
@@ -1101,10 +1232,20 @@ export async function createTopicSession(
   const normalizedTopic = normalizeTopic(payload.topicText);
   const cachedLenses = payload.forceRefresh
     ? null
-    : await findCompletedLensCache(normalizedTopic);
-  const generatedLenses = (
-    cachedLenses ?? (await generateTopicLenses(payload.topicText))
-  ).slice(0, MAX_TOPIC_LENSES);
+    : await findInitialLensCache(normalizedTopic);
+  if (!cachedLenses && cacheOnlyMode) {
+    throw new Error("This topic is not prepared for the public Prism demo.");
+  }
+  const generation = cachedLenses
+    ? null
+    : await generateTopicLenses(payload.topicText);
+  const generatedLenses = (cachedLenses ?? generation?.lenses ?? []).slice(
+    0,
+    MAX_TOPIC_LENSES,
+  );
+  if (generation?.source === "ai") {
+    await saveInitialLensCache(normalizedTopic, generatedLenses);
+  }
   const created = (await getEntity("TopicSession").create({
     topicText: payload.topicText,
     normalizedTopic,
@@ -1193,7 +1334,10 @@ export async function generateLensView(
     return functionResult;
   }
 
-  await findLensForTopicSession(payload.topicSessionId, payload.lensId);
+  const lens = await findLensForTopicSession(
+    payload.topicSessionId,
+    payload.lensId,
+  );
 
   const topicSession = await findTopicSession(payload.topicSessionId);
   const view = await findOrCreateRefractedView(
@@ -1201,11 +1345,52 @@ export async function generateLensView(
     payload.lensId,
   );
 
+  const cachedExploration = payload.forceRegenerate
+    ? null
+    : await findLensExplorationCache(
+        normalizeTopic(topicSession.topicText),
+        lens.key,
+      );
+  if (!cachedExploration && cacheOnlyMode) {
+    throw new Error("This lens is not prepared for the public Prism demo.");
+  }
+
   await getEntity("TopicSession").update(topicSession.id, {
     selectedLensId: payload.lensId,
     status: "generating",
     updatedAt: nowIso(),
   });
+
+  if (cachedExploration) {
+    const timestamp = nowIso();
+    const run = (await getEntity("GenerationRun").create({
+      topicSessionId: payload.topicSessionId,
+      lensId: payload.lensId,
+      mode: "generate",
+      retrievalEnabled: payload.retrievalEnabled !== false,
+      status: "succeeded",
+      startedAt: timestamp,
+      finishedAt: timestamp,
+      errorCode: null,
+      errorSummary: null,
+      modelName: "Prism LensExplorationCache",
+      createdAt: timestamp,
+    })) as unknown as GenerationRunRecord;
+
+    await getEntity("RefractedView").update(view.id, {
+      status: "generating",
+      generationRunId: run.id,
+      retrievalEnabled: payload.retrievalEnabled !== false,
+      updatedAt: timestamp,
+    });
+    await persistExploration(topicSession.id, view, cachedExploration);
+
+    return {
+      generationRunId: run.id,
+      refractedViewId: view.id,
+      status: "queued",
+    };
+  }
 
   const run = (await getEntity("GenerationRun").create({
     topicSessionId: payload.topicSessionId,

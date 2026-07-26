@@ -316,6 +316,16 @@ form {
   transform: none;
 }
 
+.custom-topic-availability {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.availability-copy {
+  font-style: italic;
+}
+
 input,
 button,
 .lens-card {
@@ -363,6 +373,15 @@ button:hover:not(:disabled) {
 button:disabled {
   cursor: wait;
   opacity: 0.75;
+}
+
+.lens-card:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.lens-card:disabled .lens-cta-disabled {
+  color: var(--muted);
 }
 
 .inline-error {
@@ -496,52 +515,6 @@ button:disabled {
   background: var(--surface);
 }
 
-.loading-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 28px;
-  color: var(--ink);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.loading-dots {
-  display: inline-flex;
-  gap: 4px;
-}
-
-.loading-dots i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--violet);
-  animation: loading-pulse 900ms ease-in-out infinite;
-}
-
-.loading-dots i:nth-child(2) {
-  animation-delay: 150ms;
-}
-
-.loading-dots i:nth-child(3) {
-  animation-delay: 300ms;
-}
-
-@keyframes loading-pulse {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: scale(0.8);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 .concept-card p {
   margin: 0;
   font-size: 15px;
@@ -593,6 +566,20 @@ button:disabled {
 .follow-on-panel p:not(.eyebrow):not(.inline-error) {
   max-width: 60ch;
   color: var(--muted);
+}
+
+.follow-on-panel button:disabled {
+  cursor: not-allowed;
+  color: var(--muted);
+  background: var(--surface);
+  border-color: var(--border);
+  opacity: 0.62;
+}
+
+.feature-availability {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .state-banner {

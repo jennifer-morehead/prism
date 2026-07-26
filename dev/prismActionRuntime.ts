@@ -90,6 +90,23 @@ interface GenerationRun {
   refractedViewId: string;
 }
 
+interface CachedLensExploration {
+  title: string;
+  summary: string;
+  concepts: Array<{
+    title: string;
+    body: string;
+    confidenceScore: number | null;
+  }>;
+  connections: Array<{
+    sourceOrdinal: number;
+    relationVerb: string;
+    targetOrdinal: number;
+    rationale: string | null;
+    weight: number | null;
+  }>;
+}
+
 interface ActionRequestEnvelope {
   action: string;
   payload: Record<string, unknown>;
@@ -100,6 +117,8 @@ interface ActionRequestEnvelope {
 
 interface StoreState {
   topicSessions: Map<string, TopicSession>;
+  topicLensCaches: Map<string, Lens[]>;
+  lensExplorationCaches: Map<string, CachedLensExploration>;
   refractedViews: Map<string, RefractedView>;
   concepts: Map<string, Concept[]>;
   connections: Map<string, ConceptConnection[]>;
@@ -108,6 +127,8 @@ interface StoreState {
 
 const store: StoreState = {
   topicSessions: new Map<string, TopicSession>(),
+  topicLensCaches: new Map<string, Lens[]>(),
+  lensExplorationCaches: new Map<string, CachedLensExploration>(),
   refractedViews: new Map<string, RefractedView>(),
   concepts: new Map<string, Concept[]>(),
   connections: new Map<string, ConceptConnection[]>(),
@@ -118,6 +139,8 @@ let idCounter = 1;
 
 export function resetPrismActionStore() {
   store.topicSessions.clear();
+  store.topicLensCaches.clear();
+  store.lensExplorationCaches.clear();
   store.refractedViews.clear();
   store.concepts.clear();
   store.connections.clear();
@@ -510,30 +533,96 @@ function getTopicLenses(topicSessionId: string): Lens[] {
   return generated;
 }
 
-function findCompletedLensCache(topicText: string): Lens[] | null {
+function findInitialLensCache(topicText: string): Lens[] | null {
   const normalizedTopic = normalizeTopic(topicText);
-  const candidates = Array.from(store.topicSessions.values()).filter(
-    (session) =>
-      session.normalizedTopic === normalizedTopic &&
-      session.status === "ready" &&
-      session.generatedLenses.length >= 4,
+  const lenses = store.topicLensCaches.get(normalizedTopic);
+  return lenses
+    ? lenses.slice(0, MAX_TOPIC_LENSES).map((lens) => ({ ...lens }))
+    : null;
+}
+
+function saveInitialLensCache(topicText: string, lenses: Lens[]): void {
+  store.topicLensCaches.set(
+    normalizeTopic(topicText),
+    lenses.slice(0, MAX_TOPIC_LENSES).map((lens) => ({ ...lens })),
   );
+}
 
-  for (const session of candidates) {
-    const view = session.activeRefractedViewId
-      ? store.refractedViews.get(session.activeRefractedViewId)
-      : null;
-    const hasSucceededRun = Array.from(store.generationRuns.values()).some(
-      (run) => run.topicSessionId === session.id && run.status === "succeeded",
-    );
-    if (view?.status === "ready" && hasSucceededRun) {
-      return session.generatedLenses
-        .slice(0, MAX_TOPIC_LENSES)
-        .map((lens) => ({ ...lens }));
-    }
-  }
+function lensExplorationCacheKey(topicText: string, lensKey: string): string {
+  return `${normalizeTopic(topicText)}::${lensKey}`;
+}
 
-  return null;
+function saveLensExplorationCache(
+  topic: TopicSession,
+  lens: Lens,
+  view: RefractedView,
+): void {
+  const concepts = store.concepts.get(view.id) ?? [];
+  const connections = store.connections.get(view.id) ?? [];
+  const ordinalByConceptId = new Map(
+    concepts.map((concept) => [concept.id, concept.ordinal]),
+  );
+  store.lensExplorationCaches.set(lensExplorationCacheKey(topic.topicText, lens.key), {
+    title: view.title ?? "",
+    summary: view.summary ?? "",
+    concepts: concepts.map(({ title, body, confidenceScore }) => ({
+      title,
+      body,
+      confidenceScore,
+    })),
+    connections: connections.flatMap((connection) => {
+      const sourceOrdinal = ordinalByConceptId.get(connection.sourceConceptId);
+      const targetOrdinal = ordinalByConceptId.get(connection.targetConceptId);
+      return sourceOrdinal && targetOrdinal
+        ? [{
+            sourceOrdinal,
+            relationVerb: connection.relationVerb,
+            targetOrdinal,
+            rationale: connection.rationale,
+            weight: connection.weight,
+          }]
+        : [];
+    }),
+  });
+}
+
+function applyLensExplorationCache(
+  topic: TopicSession,
+  view: RefractedView,
+  cache: CachedLensExploration,
+): void {
+  const concepts = cache.concepts.map((concept, index) => ({
+    id: nextId("concept"),
+    refractedViewId: view.id,
+    ordinal: index + 1,
+    ...concept,
+  }));
+  store.concepts.set(view.id, concepts);
+  store.connections.set(
+    view.id,
+    cache.connections.flatMap((connection) => {
+      const source = concepts[connection.sourceOrdinal - 1];
+      const target = concepts[connection.targetOrdinal - 1];
+      return source && target && source.id !== target.id
+        ? [{
+            id: nextId("conn"),
+            refractedViewId: view.id,
+            sourceConceptId: source.id,
+            relationVerb: connection.relationVerb,
+            targetConceptId: target.id,
+            rationale: connection.rationale,
+            weight: connection.weight,
+          }]
+        : [];
+    }),
+  );
+  view.title = cache.title;
+  view.summary = cache.summary;
+  view.retrievalSummary = "Cached AI-generated exploration.";
+  view.status = "ready";
+  view.generatedAt = nowIso();
+  topic.status = "ready";
+  topic.activeRefractedViewId = view.id;
 }
 
 function ok<T>(requestId: string | undefined, data: T) {
@@ -858,6 +947,7 @@ function stageGenerationArtifacts(
     run.status = "succeeded";
     run.progressHint = "done";
     run.finishedAt = nowIso();
+    saveLensExplorationCache(topic, lens, view);
   }
 }
 
@@ -918,12 +1008,16 @@ export function executeAction(
       );
     }
 
-    const topicLenses = (
+    const cachedLenses =
       payload.forceRefresh === true
-        ? generateTopicLenses(payload.topicText)
-        : (findCompletedLensCache(payload.topicText) ??
-          generateTopicLenses(payload.topicText))
+        ? null
+        : findInitialLensCache(payload.topicText);
+    const topicLenses = (
+      cachedLenses ?? generateTopicLenses(payload.topicText)
     ).slice(0, MAX_TOPIC_LENSES);
+    if (!cachedLenses) {
+      saveInitialLensCache(payload.topicText, topicLenses);
+    }
     const topicSession: TopicSession = {
       id: nextId("topic"),
       topicText: payload.topicText,
@@ -1036,6 +1130,41 @@ export function executeAction(
       const topicSession = ensureTopicSession(payload.topicSessionId);
       const lens = ensureLens(payload.topicSessionId, payload.lensId);
       const view = ensureRefractedView(topicSession.id, lens.id);
+      const isRegeneration =
+        action === "regenerateLensView" || payload.forceRegenerate === true;
+      const cachedExploration = isRegeneration
+        ? null
+        : store.lensExplorationCaches.get(
+            lensExplorationCacheKey(topicSession.topicText, lens.key),
+          );
+
+      if (cachedExploration) {
+        const timestamp = nowIso();
+        const run: GenerationRun = {
+          id: nextId("run"),
+          topicSessionId: topicSession.id,
+          lensId: lens.id,
+          mode: "generate",
+          retrievalEnabled: payload.retrievalEnabled !== false,
+          status: "succeeded",
+          startedAt: timestamp,
+          finishedAt: timestamp,
+          errorCode: null,
+          errorSummary: null,
+          progressHint: "done",
+          step: 3,
+          refractedViewId: view.id,
+        };
+        view.generationRunId = run.id;
+        applyLensExplorationCache(topicSession, view, cachedExploration);
+        store.generationRuns.set(run.id, run);
+
+        return ok(requestId, {
+          generationRunId: run.id,
+          refractedViewId: view.id,
+          status: "queued",
+        });
+      }
 
       topicSession.selectedLensId = lens.id;
       topicSession.status = "generating";
@@ -1046,7 +1175,7 @@ export function executeAction(
         id: view.generationRunId,
         topicSessionId: topicSession.id,
         lensId: lens.id,
-        mode: action === "regenerateLensView" ? "regenerate" : "generate",
+        mode: isRegeneration ? "regenerate" : "generate",
         retrievalEnabled: payload.retrievalEnabled !== false,
         status: "queued",
         startedAt: nowIso(),

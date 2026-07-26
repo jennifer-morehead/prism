@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ConceptCardList } from "../components/ConceptCardList";
 import { ConnectionList } from "../components/ConnectionList";
 import { GenerationStateBanner } from "../components/GenerationStateBanner";
@@ -7,15 +7,12 @@ import { RefractedHero } from "../components/RefractedHero";
 import { HomeLink } from "../components/HomeLink";
 import { NewTopicPrompt } from "../components/NewTopicPrompt";
 import { useExplorationState } from "../features/exploration/useExplorationState";
-import { generateFollowOnLenses } from "../features/exploration/exploration.api";
 import { getTopicSession } from "../features/topic/topic.api";
 
 export function ExplorationPage() {
-  const navigate = useNavigate();
   const { topicSessionId, lensId } = useParams();
-  const [isGeneratingFollowOns, setIsGeneratingFollowOns] = useState(false);
-  const [followOnError, setFollowOnError] = useState<string | null>(null);
   const [lensDisplayOrder, setLensDisplayOrder] = useState(0);
+  const [topicText, setTopicText] = useState<string | null>(null);
 
   if (!topicSessionId || !lensId) {
     return (
@@ -31,7 +28,6 @@ export function ExplorationPage() {
     error,
     progressHint,
     startGeneration,
-    triggerRegeneration,
   } = useExplorationState({
     topicSessionId,
     lensId,
@@ -43,6 +39,7 @@ export function ExplorationPage() {
       .then((session) => {
         if (!cancelled) {
           setLensDisplayOrder(session.selectedLens?.displayOrder ?? 0);
+          setTopicText(session.topicSession.topicText);
         }
       })
       .catch(() => undefined);
@@ -50,28 +47,6 @@ export function ExplorationPage() {
       cancelled = true;
     };
   }, [topicSessionId]);
-
-  const handleGenerateFollowOns = async () => {
-    if (!data) return;
-    setIsGeneratingFollowOns(true);
-    setFollowOnError(null);
-    try {
-      await generateFollowOnLenses({
-        topicSessionId,
-        lensId,
-        refractedViewId: data.refractedView.id,
-      });
-      navigate(`/session/${topicSessionId}/lenses`);
-    } catch (cause) {
-      setFollowOnError(
-        cause instanceof Error
-          ? cause.message
-          : "Unable to generate new perspectives",
-      );
-    } finally {
-      setIsGeneratingFollowOns(false);
-    }
-  };
 
   return (
     <main className="page page-exploration">
@@ -86,7 +61,6 @@ export function ExplorationPage() {
         status={status}
         progressHint={progressHint}
         error={error}
-        onRegenerate={() => void triggerRegeneration()}
       />
 
       {data ? (
@@ -110,18 +84,12 @@ export function ExplorationPage() {
               <p>
                 Generate four fresh perspectives shaped by the ideas above.
               </p>
-              <button
-                type="button"
-                disabled={isGeneratingFollowOns}
-                onClick={() => void handleGenerateFollowOns()}
-              >
-                {isGeneratingFollowOns
-                  ? "Finding new angles..."
-                  : "Generate new perspectives"}
+              <button type="button" disabled>
+                Generate new perspectives
               </button>
-              {followOnError ? (
-                <p className="inline-error">{followOnError}</p>
-              ) : null}
+              <p className="feature-availability availability-copy">
+                Available in full Prism
+              </p>
             </section>
           ) : null}
         </>
@@ -135,7 +103,9 @@ export function ExplorationPage() {
         </section>
       )}
 
-      <NewTopicPrompt showSuggestions={false} />
+      {data?.refractedView.status === "ready" && topicText ? (
+        <NewTopicPrompt excludeTopic={topicText} />
+      ) : null}
     </main>
   );
 }

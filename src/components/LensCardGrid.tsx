@@ -13,14 +13,21 @@ export function LensCardGrid({ lenses, onSelect }: LensCardGridProps) {
           key={lens.id}
           type="button"
           className="lens-card"
+          disabled={lens.displayOrder !== lenses[0]?.displayOrder}
           onClick={() => onSelect(lens.id)}
         >
           <span className="lens-card-content">
             <h2>{lens.name}</h2>
             <p className="lens-description">{lens.description}</p>
-            <span className="lens-cta">
-              Refract lens <span aria-hidden="true">→</span>
-            </span>
+            {lens.displayOrder === lenses[0]?.displayOrder ? (
+              <span className="lens-cta">
+                Refract lens <span aria-hidden="true">→</span>
+              </span>
+            ) : (
+              <span className="lens-cta lens-cta-disabled availability-copy">
+                Available in full Prism
+              </span>
+            )}
           </span>
         </button>
       ))}
