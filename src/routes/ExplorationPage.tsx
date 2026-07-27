@@ -80,7 +80,7 @@ export function ExplorationPage() {
           {data.refractedView.status === "ready" ? (
             <section className="follow-on-panel">
               <p className="eyebrow">Continue exploring</p>
-              <h2>Find new angles from this refraction</h2>
+              <h2>Find new lenses from this refraction</h2>
               <p>
                 Generate four fresh perspectives shaped by the ideas above.
               </p>
