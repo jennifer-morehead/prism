@@ -61,6 +61,41 @@ describe("Prism action runtime", () => {
     );
   });
 
+  test("uses perspective-based names for deterministic topic lenses", () => {
+    const created = data<{ topicSession: { id: string } }>(
+      executeAction(
+        "createTopicSession",
+        { topicText: "dog training" },
+        "req-perspectives",
+      ),
+    );
+    const listed = data<{ lenses: Array<{ name: string; description: string }> }>(
+      executeAction(
+        "listLenses",
+        { topicSessionId: created.topicSession.id },
+        "req-perspectives-lenses",
+      ),
+    );
+
+    expect(listed.lenses).toHaveLength(4);
+    expect(listed.lenses.map((lens) => lens.name)).toEqual([
+      "Home Routines",
+      "Learning and Reinforcement",
+      "Health and Behavior",
+      "Animal Wellbeing",
+    ]);
+    expect(
+      listed.lenses.some((lens) =>
+        /owner|trainer|specialist|advocate|handler|analyst|expert/i.test(
+          lens.name,
+        ),
+      ),
+    ).toBe(false);
+    expect(listed.lenses.every((lens) => lens.description.endsWith("."))).toBe(
+      true,
+    );
+  });
+
   test("advances generation lifecycle to a ready exploration view", () => {
     const created = data<{ topicSession: { id: string } }>(
       executeAction(
@@ -153,7 +188,7 @@ describe("Prism action runtime", () => {
         title: string | null;
         summary: string | null;
       };
-      concepts: Array<{ ordinal: number }>;
+      concepts: Array<{ ordinal: number; searchQuery: string }>;
       connections: Array<{ relationVerb: string }>;
       generation: { status: string };
     }>(
@@ -167,6 +202,12 @@ describe("Prism action runtime", () => {
     expect(exploration.refractedView.status).toBe("ready");
     expect(exploration.refractedView.title).toContain(selectedLensName);
     expect(exploration.concepts).toHaveLength(3);
+    expect(
+      exploration.concepts.every((concept) => {
+        const wordCount = concept.searchQuery.trim().split(/\s+/).length;
+        return wordCount >= 5 && wordCount <= 12;
+      }),
+    ).toBe(true);
     expect(exploration.connections).toHaveLength(2);
     expect(exploration.generation.status).toBe("succeeded");
   });

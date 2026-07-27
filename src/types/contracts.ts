@@ -76,6 +76,7 @@ export interface ConceptSummary {
   ordinal: number;
   title: string;
   body: string;
+  searchQuery: string;
   confidenceScore: number | null;
 }
 

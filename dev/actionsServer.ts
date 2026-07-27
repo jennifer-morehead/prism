@@ -63,6 +63,7 @@ interface Concept {
   ordinal: number;
   title: string;
   body: string;
+  searchQuery: string;
   confidenceScore: number | null;
 }
 
@@ -144,9 +145,9 @@ function loadLenses(): Lens[] {
     return [
       {
         id: "lens_fallback",
-        key: "everyday_user",
-        name: "Everyday User",
-        description: "Practical impacts and user experience perspective.",
+        key: "practical_impact",
+        name: "Practical Impact",
+        description: "Daily effects, accessibility, and lived experience.",
         displayOrder: 1,
         accentColor: "#f4b83f",
         isActive: true,
@@ -284,6 +285,10 @@ function stageGenerationArtifacts(
         ordinal: 1,
         title: "Primary Drivers",
         body: `Key forces affecting ${topic.topicText} from the ${lens.name.toLowerCase()} perspective.`,
+        searchQuery: `${topic.topicText} ${lens.name} primary drivers`
+          .split(/\s+/)
+          .slice(0, 12)
+          .join(" "),
         confidenceScore: 0.77,
       },
       {
@@ -292,6 +297,10 @@ function stageGenerationArtifacts(
         ordinal: 2,
         title: "Trade-offs",
         body: `Benefits and costs emerge differently depending on implementation and governance choices.`,
+        searchQuery: `${topic.topicText} ${lens.name} trade-offs`
+          .split(/\s+/)
+          .slice(0, 12)
+          .join(" "),
         confidenceScore: 0.74,
       },
       {
@@ -300,6 +309,10 @@ function stageGenerationArtifacts(
         ordinal: 3,
         title: "Near-Term Actions",
         body: "Concrete experiments can reduce uncertainty while preserving optionality.",
+        searchQuery: `${topic.topicText} ${lens.name} near-term actions`
+          .split(/\s+/)
+          .slice(0, 12)
+          .join(" "),
         confidenceScore: 0.72,
       },
     ];

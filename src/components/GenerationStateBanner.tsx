@@ -14,7 +14,16 @@ export function GenerationStateBanner({
   }
 
   if (status === "idle" || status === "loading" || status === "partial") {
-    return <p className="status-copy">Loading refraction...</p>;
+    return (
+      <aside className="loading-indicator" role="status" aria-live="polite">
+        <span>Loading refraction</span>
+        <span className="loading-dots" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+      </aside>
+    );
   }
 
   return (

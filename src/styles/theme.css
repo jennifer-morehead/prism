@@ -119,14 +119,25 @@ h3 {
 }
 
 .page-header {
-  position: absolute;
-  top: 32px;
-  right: 36px;
-  left: 36px;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 20;
   display: flex;
+  width: min(100%, 1440px);
+  min-height: 74px;
+  padding: 18px 36px 14px;
   align-items: center;
   justify-content: space-between;
-  min-height: 42px;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 8, 15, 0.98) 0%,
+    rgba(8, 8, 15, 0.9) 72%,
+    rgba(8, 8, 15, 0) 100%
+  );
+  box-shadow: 0 12px 22px -20px rgba(0, 0, 0, 0.9);
+  transform: translateX(-50%);
+  backdrop-filter: blur(8px);
 }
 
 .home-link:hover {
@@ -262,6 +273,14 @@ form {
   margin-bottom: 0;
 }
 
+.about-modal-section-title {
+  margin: 30px 0 10px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
 .about-modal-close {
   position: absolute;
   top: 14px;
@@ -375,6 +394,40 @@ button:disabled {
   opacity: 0.75;
 }
 
+.refracting-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  opacity: 1;
+}
+
+.refracting-cta::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: "";
+  background: linear-gradient(
+    105deg,
+    transparent 24%,
+    rgba(203, 184, 255, 0.38) 47%,
+    rgba(22, 199, 154, 0.22) 54%,
+    transparent 76%
+  );
+  transform: translateX(-120%);
+  animation: prism-sweep 1.5s ease-in-out infinite;
+}
+
+.refracting-cta > span {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes prism-sweep {
+  to {
+    transform: translateX(120%);
+  }
+}
+
 .lens-card:disabled {
   cursor: default;
   opacity: 0.58;
@@ -387,6 +440,56 @@ button:disabled {
 .inline-error {
   margin: 10px 0 0;
   color: #ff9fa0;
+}
+
+.loading-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 28px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.loading-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.loading-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--violet);
+  animation: loading-dot-pulse 900ms ease-in-out infinite;
+}
+
+.loading-dots i:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.loading-dots i:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+@keyframes loading-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .refracting-cta::after,
+  .loading-dots i {
+    animation: none;
+  }
 }
 
 .lens-grid {
@@ -507,6 +610,8 @@ button:disabled {
 }
 
 .concept-card {
+  display: flex;
+  flex-direction: column;
   min-height: 185px;
   padding: 28px 30px;
   border: 1px solid var(--border);
@@ -519,6 +624,33 @@ button:disabled {
   margin: 0;
   font-size: 15px;
   line-height: 1.55;
+}
+
+.concept-explore {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.concept-explore:hover,
+.concept-explore:focus-visible {
+  color: var(--ink);
+}
+
+.concept-explore svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
 }
 
 .connection-list {
@@ -661,9 +793,8 @@ button:disabled {
   }
 
   .page-header {
-    top: 22px;
-    right: 20px;
-    left: 20px;
+    min-height: 64px;
+    padding: 14px 20px 12px;
   }
 
   .page-header .home-link {
@@ -706,8 +837,8 @@ button:disabled {
 
 @media (max-width: 420px) {
   .page-header {
-    right: 16px;
-    left: 16px;
+    padding-right: 16px;
+    padding-left: 16px;
   }
 
   .page-lenses,

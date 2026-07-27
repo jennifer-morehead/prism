@@ -1,45 +1,45 @@
 [
   {
     "id": "lens_everyday",
-    "key": "everyday_user",
-    "name": "Everyday User",
-    "description": "Frame the topic through practical day-to-day impact and accessibility.",
+    "key": "practical_impact",
+    "name": "Practical Impact",
+    "description": "Frame the topic through day-to-day impact and accessibility.",
     "displayOrder": 1,
     "accentColor": "#f4b83f",
     "isActive": true
   },
   {
     "id": "lens_policy",
-    "key": "policy_reviewer",
-    "name": "Policy Reviewer",
-    "description": "Assess governance, compliance, and societal safeguards.",
+    "key": "rules_and_accountability",
+    "name": "Rules and Accountability",
+    "description": "Assess governance, safeguards, and public responsibility.",
     "displayOrder": 2,
     "accentColor": "#8ba3c7",
     "isActive": true
   },
   {
     "id": "lens_builder",
-    "key": "technical_builder",
-    "name": "Technical Builder",
-    "description": "Break down implementation constraints, architecture, and trade-offs.",
+    "key": "system_design",
+    "name": "System Design",
+    "description": "Examine implementation constraints, structure, and trade-offs.",
     "displayOrder": 3,
     "accentColor": "#7fb38d",
     "isActive": true
   },
   {
     "id": "lens_economic",
-    "key": "market_economist",
-    "name": "Market Economist",
-    "description": "Evaluate incentives, costs, and market structure implications.",
+    "key": "costs_and_incentives",
+    "name": "Costs and Incentives",
+    "description": "Evaluate resource pressures, incentives, and economic effects.",
     "displayOrder": 4,
     "accentColor": "#c79b7a",
     "isActive": true
   },
   {
     "id": "lens_risk",
-    "key": "risk_analyst",
-    "name": "Risk Analyst",
-    "description": "Identify downside scenarios, uncertainty, and mitigation options.",
+    "key": "risk_and_resilience",
+    "name": "Risk and Resilience",
+    "description": "Identify uncertainty, failure modes, and recovery options.",
     "displayOrder": 5,
     "accentColor": "#c57f7f",
     "isActive": true

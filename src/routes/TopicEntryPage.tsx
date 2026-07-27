@@ -68,17 +68,25 @@ export function TopicEntryPage() {
             <p>Most search tools answer the question you ask.</p>
             <p>Prism starts one step earlier.</p>
             <p>
-              Instead of assuming you already know the best question, Prism
-              explores a topic through multiple perspectives revealing
-              connections and ways of thinking you might not have considered.
+              Instead of assuming you already know the best question, <strong>
+                Prism explores a topic through multiple perspectives
+              </strong>{" "}
+              revealing connections and ways of thinking you might not have
+              considered.
             </p>
             <p>
               Just as a prism refracts light into different colors, Prism
               refracts ideas into different lenses so you can explore a topic
               more completely.
             </p>
-            <p>There isn’t one right perspective.</p>
-            <p>The value comes from seeing several.</p>
+            <p>There isn’t one right perspective, the value comes from seeing several.</p>
+            <h3 className="about-modal-section-title">How is this generated?</h3>
+            <p>
+              Prism uses AI to organize topics into meaningful perspectives and
+              concepts. The content is designed to support exploration and
+              should be treated as a starting point for learning rather than a
+              definitive or fully sourced answer.
+            </p>
           </section>
         </div>
       ) : null}

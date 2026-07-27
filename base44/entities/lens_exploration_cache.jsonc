@@ -19,6 +19,7 @@
         "properties": {
           "title": { "type": "string" },
           "body": { "type": "string" },
+          "searchQuery": { "type": "string" },
           "confidenceScore": { "type": "number" },
         },
         "required": ["title", "body", "confidenceScore"],

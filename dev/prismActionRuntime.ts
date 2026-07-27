@@ -61,6 +61,7 @@ interface Concept {
   ordinal: number;
   title: string;
   body: string;
+  searchQuery: string;
   confidenceScore: number | null;
 }
 
@@ -96,6 +97,7 @@ interface CachedLensExploration {
   concepts: Array<{
     title: string;
     body: string;
+    searchQuery: string;
     confidenceScore: number | null;
   }>;
   connections: Array<{
@@ -189,24 +191,11 @@ function toLens(
   };
 }
 
-function titleCaseTopic(topicText: string): string {
-  const cleaned = topicText.trim();
-  if (!cleaned) {
-    return "Topic";
-  }
-
-  return cleaned
-    .split(/\s+/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 function contextualFallbackLenses(
   topicSlug: string,
   topicText: string,
 ): Lens[] {
   const normalized = normalizeTopic(topicText);
-  const topicTitle = titleCaseTopic(topicText);
 
   if (
     normalized.includes("yoga") ||
@@ -216,31 +205,31 @@ function contextualFallbackLenses(
     return [
       toLens(
         topicSlug,
-        "Movement instructor",
+        "Movement and Alignment",
         "Instruction quality, progression pacing, and student adaptation.",
         1,
       ),
       toLens(
         topicSlug,
-        "Sports medicine specialist",
+        "Physical Safety",
         "Mobility, injury prevention, and recovery constraints.",
         2,
       ),
       toLens(
         topicSlug,
-        "Meditation practitioner",
+        "Breath and Attention",
         "Breathwork integration, focus outcomes, and mental steadiness.",
         3,
       ),
       toLens(
         topicSlug,
-        "Studio owner",
+        "Practice Access",
         "Class operations, retention, and sustainable business delivery.",
         4,
       ),
       toLens(
         topicSlug,
-        "Yoga philosophy scholar",
+        "Tradition and Meaning",
         "Tradition alignment, ethics, and interpretation integrity.",
         5,
       ),
@@ -256,31 +245,31 @@ function contextualFallbackLenses(
     return [
       toLens(
         topicSlug,
-        "Blockchain developer",
+        "Protocol Design",
         "Protocol design, scalability limits, and implementation risk.",
         1,
       ),
       toLens(
         topicSlug,
-        "Retail investor",
+        "Everyday Use",
         "Volatility tolerance, usability, and portfolio decision pressure.",
         2,
       ),
       toLens(
         topicSlug,
-        "Monetary economist",
+        "Market Dynamics",
         "Market structure, liquidity behavior, and macro incentives.",
         3,
       ),
       toLens(
         topicSlug,
-        "Regulatory analyst",
+        "Rules and Accountability",
         "Compliance constraints, policy direction, and legal uncertainty.",
         4,
       ),
       toLens(
         topicSlug,
-        "Cybersecurity researcher",
+        "Security and Custody",
         "Threat models, custody risks, and exploit mitigation.",
         5,
       ),
@@ -295,31 +284,31 @@ function contextualFallbackLenses(
     return [
       toLens(
         topicSlug,
-        `${topicTitle} coach`,
+        "Daily Habits",
         "Daily practice design, motivation loops, and consistency barriers.",
         1,
       ),
       toLens(
         topicSlug,
-        "Clinical specialist",
+        "Safety and Outcomes",
         "Safety bounds, contraindications, and measurable outcomes.",
         2,
       ),
       toLens(
         topicSlug,
-        "Long-term practitioner",
+        "Long-Term Fit",
         "Adherence, lifestyle fit, and practical trade-offs.",
         3,
       ),
       toLens(
         topicSlug,
-        "Program operator",
+        "Care Delivery",
         "Service delivery, staffing, and quality control at scale.",
         4,
       ),
       toLens(
         topicSlug,
-        "Outcomes researcher",
+        "Evidence and Uncertainty",
         "Evidence strength, confounders, and evaluation design.",
         5,
       ),
@@ -334,31 +323,31 @@ function contextualFallbackLenses(
     return [
       toLens(
         topicSlug,
-        `${topicTitle} product builder`,
+        "Product Mechanics",
         "System design choices, operational constraints, and reliability.",
         1,
       ),
       toLens(
         topicSlug,
-        "Retail participant",
+        "Household Risk",
         "Accessibility, trust, and risk-adjusted value.",
         2,
       ),
       toLens(
         topicSlug,
-        "Monetary economist",
+        "Market Incentives",
         "Incentive alignment, externalities, and systemic effects.",
         3,
       ),
       toLens(
         topicSlug,
-        "Regulatory reviewer",
+        "Consumer Protection",
         "Consumer protection requirements and compliance burden.",
         4,
       ),
       toLens(
         topicSlug,
-        "Fraud and security analyst",
+        "Fraud and Resilience",
         "Attack paths, controls, and incident response readiness.",
         5,
       ),
@@ -374,66 +363,66 @@ function contextualFallbackLenses(
     return [
       toLens(
         topicSlug,
-        `${topicTitle} engineer`,
+        "System Design",
         "Architecture decisions, failure handling, and maintainability trade-offs.",
         1,
       ),
       toLens(
         topicSlug,
-        "Product manager",
+        "User Experience",
         "User value clarity, roadmap sequencing, and delivery scope.",
         2,
       ),
       toLens(
         topicSlug,
-        "Everyday end user",
+        "Everyday Use",
         "Adoption friction, usability, and trust signals.",
         3,
       ),
       toLens(
         topicSlug,
-        "Safety and ethics reviewer",
+        "Trust and Safety",
         "Misuse risk, fairness, and governance controls.",
         4,
       ),
       toLens(
         topicSlug,
-        "Platform operator",
+        "Operating at Scale",
         "Cost, latency, observability, and uptime accountability.",
         5,
       ),
     ];
   }
 
-  // Placeholder abstraction: deterministic now, swappable with model-based role generation later.
+  // Deterministic fallback for local or unavailable AI generation.
   return [
     toLens(
       topicSlug,
-      `${topicTitle} practitioner`,
+      "Practical Dimensions",
       "Hands-on workflows, constraints, and practical decisions.",
       1,
     ),
     toLens(
       topicSlug,
-      `${topicTitle} researcher`,
+      "Evidence and Unknowns",
       "Evidence quality, uncertainty, and open questions.",
       2,
     ),
     toLens(
       topicSlug,
-      "Business operator",
+      "Resources and Trade-Offs",
       "Economic viability, resource planning, and execution risks.",
       3,
     ),
     toLens(
       topicSlug,
-      "Policy and governance analyst",
+      "Rules and Consequences",
       "Regulatory context, accountability, and societal impact.",
       4,
     ),
     toLens(
       topicSlug,
-      "Community advocate",
+      "Access and Inclusion",
       "Accessibility, inclusion, and long-term public outcomes.",
       5,
     ),
@@ -448,31 +437,31 @@ function generateTopicLenses(topicText: string): Lens[] {
     return [
       toLens(
         topicSlug,
-        "First-time dog owner",
+        "Home Routines",
         "Daily routines, behavior basics, and what is manageable at home.",
         1,
       ),
       toLens(
         topicSlug,
-        "Professional trainer",
+        "Learning and Reinforcement",
         "Training progression, reinforcement design, and skill transfer.",
         2,
       ),
       toLens(
         topicSlug,
-        "Veterinary behavior specialist",
+        "Health and Behavior",
         "Medical and behavioral contributors to difficult patterns.",
         3,
       ),
       toLens(
         topicSlug,
-        "Animal welfare advocate",
+        "Animal Wellbeing",
         "Stress minimization, humane methods, and wellbeing outcomes.",
         4,
       ),
       toLens(
         topicSlug,
-        "Working dog handler",
+        "Distraction and Reliability",
         "Reliability under distraction, consistency, and task performance.",
         5,
       ),
@@ -483,31 +472,31 @@ function generateTopicLenses(topicText: string): Lens[] {
     return [
       toLens(
         topicSlug,
-        "Coffee drinker",
+        "Everyday Ritual",
         "Taste, convenience, cost, and day-to-day ritual value.",
         1,
       ),
       toLens(
         topicSlug,
-        "Specialty roaster",
+        "Flavor and Quality",
         "Bean quality, roast profile control, and consistency standards.",
         2,
       ),
       toLens(
         topicSlug,
-        "Coffee farmer",
+        "Growing Conditions",
         "Yield stability, pricing pressure, and climate exposure.",
         3,
       ),
       toLens(
         topicSlug,
-        "Sustainability researcher",
+        "Environmental Footprint",
         "Environmental impact, traceability, and long-term resilience.",
         4,
       ),
       toLens(
         topicSlug,
-        "Cafe owner",
+        "Cafe Economics",
         "Margins, customer retention, and operational throughput.",
         5,
       ),
@@ -565,9 +554,10 @@ function saveLensExplorationCache(
   store.lensExplorationCaches.set(lensExplorationCacheKey(topic.topicText, lens.key), {
     title: view.title ?? "",
     summary: view.summary ?? "",
-    concepts: concepts.map(({ title, body, confidenceScore }) => ({
+    concepts: concepts.map(({ title, body, searchQuery, confidenceScore }) => ({
       title,
       body,
+      searchQuery,
       confidenceScore,
     })),
     connections: connections.flatMap((connection) => {
@@ -835,22 +825,31 @@ function lensActionBias(lens: Lens): string {
 function conceptSet(
   topic: TopicSession,
   lens: Lens,
-): Array<{ title: string; body: string }> {
+): Array<{ title: string; body: string; searchQuery: string }> {
   const profile = topicProfile(topic);
   const bias = lensActionBias(lens);
+  const searchQuery = (conceptTitle: string) =>
+    `${topic.topicText} ${lens.name} ${conceptTitle}`
+      .trim()
+      .split(/\s+/)
+      .slice(0, 12)
+      .join(" ");
 
   return [
     {
       title: "Primary Drivers",
       body: `For ${topic.topicText}, the ${lens.name.toLowerCase()} lens highlights ${profile.focus}.`,
+      searchQuery: searchQuery("Primary Drivers"),
     },
     {
       title: "Trade-offs",
       body: `The main tension is ${profile.tradeoff}, while preserving ${bias}.`,
+      searchQuery: searchQuery("Trade-offs"),
     },
     {
       title: "Near-Term Actions",
       body: profile.action,
+      searchQuery: searchQuery("Near-Term Actions"),
     },
   ];
 }
@@ -881,6 +880,7 @@ function stageGenerationArtifacts(
         ordinal: 1,
         title: dynamicConcepts[0].title,
         body: dynamicConcepts[0].body,
+        searchQuery: dynamicConcepts[0].searchQuery,
         confidenceScore: 0.77,
       },
       {
@@ -889,6 +889,7 @@ function stageGenerationArtifacts(
         ordinal: 2,
         title: dynamicConcepts[1].title,
         body: dynamicConcepts[1].body,
+        searchQuery: dynamicConcepts[1].searchQuery,
         confidenceScore: 0.74,
       },
       {
@@ -897,6 +898,7 @@ function stageGenerationArtifacts(
         ordinal: 3,
         title: dynamicConcepts[2].title,
         body: dynamicConcepts[2].body,
+        searchQuery: dynamicConcepts[2].searchQuery,
         confidenceScore: 0.72,
       },
     ];
@@ -1073,25 +1075,25 @@ export function executeAction(
       const lenses = [
         toLens(
           topicSlug,
-          `${sourceLens.name} implementation strategist`,
+          "Practical Interventions",
           "Focuses on the concrete interventions, constraints, and decisions surfaced by this refraction.",
           startOrder,
         ),
         toLens(
           topicSlug,
-          "Affected community researcher",
+          "Uneven Effects",
           "Examines who experiences the consequences identified here and how those experiences differ.",
           startOrder + 1,
         ),
         toLens(
           topicSlug,
-          "Systems dependency mapper",
+          "Connected Systems",
           "Traces the institutions, incentives, and dependencies connecting the concepts in this view.",
           startOrder + 2,
         ),
         toLens(
           topicSlug,
-          "Long-horizon scenario planner",
+          "Long-Term Change",
           "Tests how the central trade-offs could evolve under plausible future conditions.",
           startOrder + 3,
         ),

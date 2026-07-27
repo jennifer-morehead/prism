@@ -18,6 +18,10 @@
       "type": "string",
       "description": "Concept explanation",
     },
+    "searchQuery": {
+      "type": "string",
+      "description": "AI-generated educational search keywords for this concept",
+    },
     "confidenceScore": {
       "type": "number",
       "minimum": 0,

@@ -295,6 +295,7 @@ interface GeneratedExploration {
   concepts: Array<{
     title: string;
     body: string;
+    searchQuery: string;
     confidenceScore: number;
   }>;
   connections: Array<{
@@ -338,18 +339,27 @@ function normalizeGeneratedExploration(value: unknown): GeneratedExploration | n
     return null;
   }
 
-  const concepts = result.concepts.filter(
-    (concept): concept is GeneratedExploration["concepts"][number] =>
-      typeof concept === "object" &&
-      concept !== null &&
-      typeof concept.title === "string" &&
-      concept.title.trim().length > 0 &&
-      typeof concept.body === "string" &&
-      concept.body.trim().length > 0 &&
-      typeof concept.confidenceScore === "number" &&
-      concept.confidenceScore >= 0 &&
-      concept.confidenceScore <= 1,
-  );
+  const concepts = result.concepts.flatMap((concept) => {
+    if (
+      typeof concept !== "object" ||
+      concept === null ||
+      typeof concept.title !== "string" ||
+      !concept.title.trim() ||
+      typeof concept.body !== "string" ||
+      !concept.body.trim() ||
+      typeof concept.confidenceScore !== "number" ||
+      concept.confidenceScore < 0 ||
+      concept.confidenceScore > 1
+    ) {
+      return [];
+    }
+
+    const searchQuery =
+      typeof concept.searchQuery === "string" && concept.searchQuery.trim()
+        ? concept.searchQuery.trim()
+        : `${concept.title} ${concept.body}`.split(/\s+/).slice(0, 12).join(" ");
+    return [{ ...concept, searchQuery }];
+  });
   const connections = result.connections.filter(
     (connection): connection is GeneratedExploration["connections"][number] =>
       typeof connection === "object" &&
@@ -386,24 +396,11 @@ async function generateLensExplorationWithAi(
   return exploration;
 }
 
-function titleCaseTopic(topicText: string): string {
-  const cleaned = topicText.trim();
-  if (!cleaned) {
-    return "Topic";
-  }
-
-  return cleaned
-    .split(/\s+/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 function contextualFallbackLenses(
   topicSlug: string,
   topicText: string,
 ): LensSummary[] {
   const normalized = normalizeTopic(topicText);
-  const topicTitle = titleCaseTopic(topicText);
 
   if (
     normalized.includes("yoga") ||
@@ -413,31 +410,31 @@ function contextualFallbackLenses(
     return [
       toDynamicLens(
         topicSlug,
-        "Movement instructor",
+        "Movement and Alignment",
         "Instruction quality, progression pacing, and student adaptation.",
         1,
       ),
       toDynamicLens(
         topicSlug,
-        "Sports medicine specialist",
+        "Physical Safety",
         "Mobility, injury prevention, and recovery constraints.",
         2,
       ),
       toDynamicLens(
         topicSlug,
-        "Meditation practitioner",
+        "Breath and Attention",
         "Breathwork integration, focus outcomes, and mental steadiness.",
         3,
       ),
       toDynamicLens(
         topicSlug,
-        "Studio owner",
+        "Practice Access",
         "Class operations, retention, and sustainable business delivery.",
         4,
       ),
       toDynamicLens(
         topicSlug,
-        "Yoga philosophy scholar",
+        "Tradition and Meaning",
         "Tradition alignment, ethics, and interpretation integrity.",
         5,
       ),
@@ -453,31 +450,31 @@ function contextualFallbackLenses(
     return [
       toDynamicLens(
         topicSlug,
-        "Blockchain developer",
+        "Protocol Design",
         "Protocol design, scalability limits, and implementation risk.",
         1,
       ),
       toDynamicLens(
         topicSlug,
-        "Retail investor",
+        "Everyday Use",
         "Volatility tolerance, usability, and portfolio decision pressure.",
         2,
       ),
       toDynamicLens(
         topicSlug,
-        "Monetary economist",
+        "Market Dynamics",
         "Market structure, liquidity behavior, and macro incentives.",
         3,
       ),
       toDynamicLens(
         topicSlug,
-        "Regulatory analyst",
+        "Rules and Accountability",
         "Compliance constraints, policy direction, and legal uncertainty.",
         4,
       ),
       toDynamicLens(
         topicSlug,
-        "Cybersecurity researcher",
+        "Security and Custody",
         "Threat models, custody risks, and exploit mitigation.",
         5,
       ),
@@ -492,31 +489,31 @@ function contextualFallbackLenses(
     return [
       toDynamicLens(
         topicSlug,
-        `${topicTitle} coach`,
+        "Daily Habits",
         "Daily practice design, motivation loops, and consistency barriers.",
         1,
       ),
       toDynamicLens(
         topicSlug,
-        "Clinical specialist",
+        "Safety and Outcomes",
         "Safety bounds, contraindications, and measurable outcomes.",
         2,
       ),
       toDynamicLens(
         topicSlug,
-        "Long-term practitioner",
+        "Long-Term Fit",
         "Adherence, lifestyle fit, and practical trade-offs.",
         3,
       ),
       toDynamicLens(
         topicSlug,
-        "Program operator",
+        "Care Delivery",
         "Service delivery, staffing, and quality control at scale.",
         4,
       ),
       toDynamicLens(
         topicSlug,
-        "Outcomes researcher",
+        "Evidence and Uncertainty",
         "Evidence strength, confounders, and evaluation design.",
         5,
       ),
@@ -531,31 +528,31 @@ function contextualFallbackLenses(
     return [
       toDynamicLens(
         topicSlug,
-        `${topicTitle} product builder`,
+        "Product Mechanics",
         "System design choices, operational constraints, and reliability.",
         1,
       ),
       toDynamicLens(
         topicSlug,
-        "Retail participant",
+        "Household Risk",
         "Accessibility, trust, and risk-adjusted value.",
         2,
       ),
       toDynamicLens(
         topicSlug,
-        "Monetary economist",
+        "Market Incentives",
         "Incentive alignment, externalities, and systemic effects.",
         3,
       ),
       toDynamicLens(
         topicSlug,
-        "Regulatory reviewer",
+        "Consumer Protection",
         "Consumer protection requirements and compliance burden.",
         4,
       ),
       toDynamicLens(
         topicSlug,
-        "Fraud and security analyst",
+        "Fraud and Resilience",
         "Attack paths, controls, and incident response readiness.",
         5,
       ),
@@ -571,66 +568,66 @@ function contextualFallbackLenses(
     return [
       toDynamicLens(
         topicSlug,
-        `${topicTitle} engineer`,
+        "System Design",
         "Architecture decisions, failure handling, and maintainability trade-offs.",
         1,
       ),
       toDynamicLens(
         topicSlug,
-        "Product manager",
+        "User Experience",
         "User value clarity, roadmap sequencing, and delivery scope.",
         2,
       ),
       toDynamicLens(
         topicSlug,
-        "Everyday end user",
+        "Everyday Use",
         "Adoption friction, usability, and trust signals.",
         3,
       ),
       toDynamicLens(
         topicSlug,
-        "Safety and ethics reviewer",
+        "Trust and Safety",
         "Misuse risk, fairness, and governance controls.",
         4,
       ),
       toDynamicLens(
         topicSlug,
-        "Platform operator",
+        "Operating at Scale",
         "Cost, latency, observability, and uptime accountability.",
         5,
       ),
     ];
   }
 
-  // Placeholder abstraction: deterministic now, swappable with model-based role generation later.
+  // Deterministic fallback for local or unavailable AI generation.
   return [
     toDynamicLens(
       topicSlug,
-      `${topicTitle} practitioner`,
+      "Practical Dimensions",
       "Hands-on workflows, constraints, and practical decisions.",
       1,
     ),
     toDynamicLens(
       topicSlug,
-      `${topicTitle} researcher`,
+      "Evidence and Unknowns",
       "Evidence quality, uncertainty, and open questions.",
       2,
     ),
     toDynamicLens(
       topicSlug,
-      "Business operator",
+      "Resources and Trade-Offs",
       "Economic viability, resource planning, and execution risks.",
       3,
     ),
     toDynamicLens(
       topicSlug,
-      "Policy and governance analyst",
+      "Rules and Consequences",
       "Regulatory context, accountability, and societal impact.",
       4,
     ),
     toDynamicLens(
       topicSlug,
-      "Community advocate",
+      "Access and Inclusion",
       "Accessibility, inclusion, and long-term public outcomes.",
       5,
     ),
@@ -645,31 +642,31 @@ function generateTopicLensesDeterministic(topicText: string): LensSummary[] {
     return [
       toDynamicLens(
         topicSlug,
-        "First-time dog owner",
+        "Home Routines",
         "Daily routines, behavior basics, and what is manageable at home.",
         1,
       ),
       toDynamicLens(
         topicSlug,
-        "Professional trainer",
+        "Learning and Reinforcement",
         "Training progression, reinforcement design, and skill transfer.",
         2,
       ),
       toDynamicLens(
         topicSlug,
-        "Veterinary behavior specialist",
+        "Health and Behavior",
         "Medical and behavioral contributors to difficult patterns.",
         3,
       ),
       toDynamicLens(
         topicSlug,
-        "Animal welfare advocate",
+        "Animal Wellbeing",
         "Stress minimization, humane methods, and wellbeing outcomes.",
         4,
       ),
       toDynamicLens(
         topicSlug,
-        "Working dog handler",
+        "Distraction and Reliability",
         "Reliability under distraction, consistency, and task performance.",
         5,
       ),
@@ -680,31 +677,31 @@ function generateTopicLensesDeterministic(topicText: string): LensSummary[] {
     return [
       toDynamicLens(
         topicSlug,
-        "Coffee drinker",
+        "Everyday Ritual",
         "Taste, convenience, cost, and day-to-day ritual value.",
         1,
       ),
       toDynamicLens(
         topicSlug,
-        "Specialty roaster",
+        "Flavor and Quality",
         "Bean quality, roast profile control, and consistency standards.",
         2,
       ),
       toDynamicLens(
         topicSlug,
-        "Coffee farmer",
+        "Growing Conditions",
         "Yield stability, pricing pressure, and climate exposure.",
         3,
       ),
       toDynamicLens(
         topicSlug,
-        "Sustainability researcher",
+        "Environmental Footprint",
         "Environmental impact, traceability, and long-term resilience.",
         4,
       ),
       toDynamicLens(
         topicSlug,
-        "Cafe owner",
+        "Cafe Economics",
         "Margins, customer retention, and operational throughput.",
         5,
       ),
@@ -1018,6 +1015,7 @@ async function persistExploration(
       ordinal: index + 1,
       title: concept.title,
       body: concept.body,
+      searchQuery: concept.searchQuery,
       confidenceScore: concept.confidenceScore,
       createdAt: nowIso(),
       updatedAt: nowIso(),

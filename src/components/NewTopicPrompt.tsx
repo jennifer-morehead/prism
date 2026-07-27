@@ -71,8 +71,12 @@ export function NewTopicPrompt({
           maxLength={120}
           required
         />
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Refracting..." : "Explore"}
+        <button
+          type="submit"
+          className={isSubmitting ? "refracting-cta" : undefined}
+          disabled={isSubmitting}
+        >
+          <span>{isSubmitting ? "Refracting..." : "Explore"}</span>
         </button>
       </form>
       {showSuggestions ? (
